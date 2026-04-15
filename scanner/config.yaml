@@ -1,0 +1,26 @@
+{
+  "storage": { "db_path": "scanner/storage/vuln_cache.db" },
+  "reports":
+    {
+      "json_output": "scanner/report.json",
+      "html_output": "scanner/report.html",
+    },
+  "sources": {
+      "osv_base_url": "https://api.osv.dev/v1/querybatch",
+      "epss_base_url": "https://api.first.org/data/v1/epss",
+      "kev_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "nvd_base_url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+      "ghsa_base_url": "https://api.github.com/graphql",
+      "ossindex_base_url": "https://ossindex.sonatype.org/api/v3/component-report",
+      "sonatype_base_url": "https://api.guide.sonatype.com",
+      # Optional – keys can also go in a .env file or env vars.
+      # "nvd_api_key": "your-nvd-api-key",
+      # "github_token": "ghp_your_github_token",
+    },
+  "scanners":
+    {
+      "vscode_path": "~/.vscode/extensions",
+      "jetbrains_paths":
+        ["~/.local/share/JetBrains", "~/Library/Application Support/JetBrains"],
+    },
+}

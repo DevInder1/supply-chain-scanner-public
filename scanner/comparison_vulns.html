@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vulnerabilities &amp; Risk Report</title>
+<style>
+:root {
+  --bg:#09090b; --surface:#18181b; --surface2:#27272a;
+  --border:#3f3f46; --text:#fafafa; --muted:#a1a1aa;
+  --critical:#ef4444; --high:#f97316; --medium:#eab308; --low:#22d3ee;
+  --green:#22c55e; --blue:#3b82f6; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);padding:24px;line-height:1.5}
+.container{max-width:1060px;margin:0 auto}
+
+/* Header */
+.hdr{padding:20px 24px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:20px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.hdr h1{font-size:1.4rem;font-weight:700;letter-spacing:-0.02em}
+.hdr-meta{color:var(--muted);font-size:0.8rem}
+
+/* Summary strip */
+.strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.strip{grid-template-columns:repeat(3,1fr)}}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;text-align:center}
+.scard .sv{font-size:1.8rem;font-weight:800;line-height:1}
+.scard .sl{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px}
+
+/* Scatter plot */
+.scatter-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:20px}
+.scatter-wrap h2{font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--muted)}
+.scatter{position:relative;width:100%;height:260px;border-left:1px solid var(--border);
+  border-bottom:1px solid var(--border)}
+.scatter .axis-x{position:absolute;bottom:-22px;width:100%;display:flex;
+  justify-content:space-between;font-size:0.68rem;color:var(--muted)}
+.scatter .axis-y{position:absolute;left:-30px;height:100%;display:flex;flex-direction:column-reverse;
+  justify-content:space-between;font-size:0.68rem;color:var(--muted)}
+.scatter .axis-label-x{position:absolute;bottom:-38px;left:50%;transform:translateX(-50%);
+  font-size:0.72rem;color:var(--muted)}
+.scatter .axis-label-y{position:absolute;left:-52px;top:50%;transform:translateY(-50%) rotate(-90deg);
+  font-size:0.72rem;color:var(--muted);white-space:nowrap}
+.dot{position:absolute;border-radius:50%;opacity:0.85;cursor:default;z-index:1}
+.dot.critical{background:var(--critical)}
+.dot.high{background:var(--high)}
+.dot.medium{background:var(--medium)}
+.dot.low{background:var(--low)}
+.dot.unknown{background:var(--muted)}
+.scatter .quadrant{position:absolute;right:0;top:0;width:50%;height:40%;
+  background:rgba(239,68,68,0.04);border-radius:0 0 0 8px;
+  display:flex;align-items:flex-start;justify-content:flex-end;
+  padding:6px 8px;font-size:0.68rem;color:rgba(239,68,68,0.5);pointer-events:none}
+
+/* Filter */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.fbtn{background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  padding:6px 16px;border-radius:99px;cursor:pointer;font-size:0.82rem;
+  font-weight:600;transition:all 0.15s}
+.fbtn:hover,.fbtn.active{background:var(--surface2);color:var(--text);border-color:var(--ac,var(--border))}
+.fbtn.active{box-shadow:0 0 0 1px var(--ac,var(--border))}
+
+/* Component cards */
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:14px;border-left:4px solid var(--border)}
+.comp-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.comp-name{font-weight:700;font-size:1.05rem}
+.comp-ver{font-size:0.82rem;background:var(--surface2);padding:2px 8px;border-radius:4px;margin:0 6px}
+.eco-tag{font-size:0.72rem;color:var(--muted);background:var(--surface2);
+  padding:2px 10px;border-radius:99px}
+.comp-pills{display:flex;gap:4px;flex-wrap:wrap}
+
+/* Pills */
+.pill{font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:99px;display:inline-block}
+.pill.critical{background:rgba(239,68,68,0.15);color:var(--critical)}
+.pill.high{background:rgba(249,115,22,0.15);color:var(--high)}
+.pill.medium{background:rgba(234,179,8,0.15);color:var(--medium)}
+.pill.low{background:rgba(34,211,238,0.15);color:var(--low)}
+.pill.unknown{background:rgba(161,161,170,0.1);color:var(--muted)}
+
+/* Advisory rows */
+.adv-list{display:flex;flex-direction:column;gap:0}
+.adv-row{padding:14px 0;border-top:1px solid var(--border)}
+.adv-row:first-child{border-top:none;padding-top:0}
+.adv-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.adv-id-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.adv-id{font-weight:600;font-family:monospace;font-size:0.88rem}
+.cve-tag{font-size:0.75rem;color:var(--muted);font-family:monospace;
+  background:var(--surface2);padding:2px 8px;border-radius:4px}
+.cvss-badge{font-size:0.72rem;font-weight:700;background:rgba(249,115,22,0.15);
+  color:var(--high);padding:2px 8px;border-radius:4px;font-family:monospace}
+.kev-badge{font-size:0.72rem;font-weight:700;background:rgba(239,68,68,0.2);
+  color:var(--critical);padding:2px 8px;border-radius:4px}
+.adv-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.epss-val{font-size:0.78rem;color:var(--muted);font-family:monospace}
+.epss-val.dim{opacity:0.4}
+.src-tag{font-size:0.65rem;padding:2px 7px;border-radius:6px;
+  background:rgba(59,130,246,0.12);color:var(--blue);font-weight:700;
+  text-transform:uppercase;letter-spacing:0.03em}
+.conf-tag{font-size:0.65rem;padding:2px 8px;border-radius:6px;font-weight:600}
+.conf-high{background:rgba(34,197,94,0.15);color:var(--green)}
+.conf-med{background:rgba(234,179,8,0.12);color:var(--medium)}
+.conf-low{background:rgba(161,161,170,0.08);color:var(--muted)}
+.ref-link{font-size:0.78rem;color:var(--blue);text-decoration:none;font-weight:600}
+.ref-link:hover{text-decoration:underline}
+.adv-desc{color:var(--muted);font-size:0.84rem;margin:8px 0;line-height:1.5}
+.fix-box{font-size:0.82rem;margin-top:8px;padding:8px 14px;border-radius:8px;
+  background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)}
+.fix-box code{background:rgba(34,197,94,0.15);color:var(--green);padding:2px 8px;
+  border-radius:4px;font-size:0.8rem;margin-right:6px}
+.fix-box.no-fix{color:var(--muted);background:var(--surface2);border-color:var(--border)}
+
+.footer{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;padding:16px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div>
+      <h1>⚡ Vulnerabilities &amp; Risk</h1>
+      <div class="hdr-meta">2026-04-13T07:09:06.983053+00:00</div>
+    </div>
+    <div style="text-align:right">
+      <div class="hdr-meta">25 scanned · 3 affected · 7 findings</div>
+      <div class="hdr-meta">6 multi-source confirmed</div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="strip">
+    <div class="scard"><div class="sv" style="color:var(--critical)">1</div><div class="sl">Critical</div></div>
+    <div class="scard"><div class="sv" style="color:var(--high)">1</div><div class="sl">High</div></div>
+    <div class="scard"><div class="sv" style="color:var(--medium)">3</div><div class="sl">Medium</div></div>
+    <div class="scard"><div class="sv" style="color:var(--low)">2</div><div class="sl">Low</div></div>
+    <div class="scard"><div class="sv">3</div><div class="sl">Components</div></div>
+    <div class="scard"><div class="sv">7</div><div class="sl">Total</div></div>
+  </div>
+
+  <!-- CVSS vs EPSS Scatter -->
+  <div class="scatter-wrap">
+    <h2>CVSS vs EPSS — Risk Heatmap</h2>
+    <div class="scatter">
+      <div class="quadrant">HIGH RISK ZONE</div>
+      <div class="dot medium" style="left:10.6%;bottom:61.0%;width:7px;height:7px" title="GHSA-mvjj-gqq2-p4hw: CVSS 6.1, EPSS 10.57%"></div><div class="dot critical" style="left:1.2%;bottom:98.0%;width:7px;height:7px" title="GHSA-hc6q-2mpp-qw7j: CVSS 9.8, EPSS 1.24%"></div><div class="dot medium" style="left:1.8%;bottom:64.0%;width:7px;height:7px" title="GHSA-4vvj-4cpr-p986: CVSS 6.4, EPSS 1.77%"></div><div class="dot low" style="left:0.0%;bottom:37.0%;width:7px;height:7px" title="GHSA-38r7-794h-5758: CVSS 3.7, EPSS 0.01%"></div><div class="dot low" style="left:0.0%;bottom:37.0%;width:7px;height:7px" title="GHSA-8fgc-7cc6-rx7x: CVSS 3.7, EPSS 0.01%"></div><div class="dot medium" style="left:0.0%;bottom:65.0%;width:7px;height:7px" title="GHSA-g53w-52xc-2j85: CVSS 6.5, EPSS 0%"></div>
+      <div class="axis-x"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="axis-y"><span>0</span><span>2.5</span><span>5</span><span>7.5</span><span>10</span></div>
+      <div class="axis-label-x">EPSS (Exploit Probability)</div>
+      <div class="axis-label-y">CVSS Score</div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  
+    <div class="filter-bar">
+      <button class="fbtn active" data-sev="all">All</button>
+      <button class="fbtn" data-sev="critical" style="--ac:var(--critical)">Critical</button>
+      <button class="fbtn" data-sev="high" style="--ac:var(--high)">High</button>
+      <button class="fbtn" data-sev="medium" style="--ac:var(--medium)">Medium</button>
+      <button class="fbtn" data-sev="low" style="--ac:var(--low)">Low</button>
+    </div>
+
+  <!-- Vulnerability Cards -->
+  
+    <div class="comp-card" style="border-left-color:var(--critical)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">webpack</span>
+          <code class="comp-ver">^5.102.1</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill critical">1 CRITICAL</span><span class="pill medium">1 MEDIUM</span><span class="pill low">2 LOW</span></div>
+      </div>
+      <div class="adv-list">
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill critical" style="font-size:0.72rem">CRITICAL</span>
+                  <span class="adv-id">GHSA-hc6q-2mpp-qw7j</span>
+                  <span class="cve-tag">CVE-2023-28154</span>
+                  <span class="cvss-badge">9.8</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">1.2%</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-28154" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Cross-realm object access in Webpack 5</p>
+              <div class="fix-box"><code>5.76.0</code></div>
+            </div>
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill medium" style="font-size:0.72rem">MEDIUM</span>
+                  <span class="adv-id">GHSA-4vvj-4cpr-p986</span>
+                  <span class="cve-tag">CVE-2024-43788</span>
+                  <span class="cvss-badge">6.4</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">1.8%</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://github.com/webpack/webpack/security/advisories/GHSA-4vvj-4cpr-p986" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Webpack&#x27;s AutoPublicPathRuntimeModule has a DOM Clobbering Gadget that leads to XSS</p>
+              <div class="fix-box"><code>5.94.0</code></div>
+            </div>
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">GHSA-38r7-794h-5758</span>
+                  <span class="cve-tag">CVE-2025-68157</span>
+                  <span class="cvss-badge">3.7</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.0%</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://github.com/webpack/webpack/security/advisories/GHSA-38r7-794h-5758" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">webpack buildHttp HttpUriPlugin allowedUris bypass via HTTP redirects → SSRF + cache persistence</p>
+              <div class="fix-box"><code>5.104.0</code></div>
+            </div>
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">GHSA-8fgc-7cc6-rx7x</span>
+                  <span class="cve-tag">CVE-2025-68458</span>
+                  <span class="cvss-badge">3.7</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.0%</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://github.com/webpack/webpack/security/advisories/GHSA-8fgc-7cc6-rx7x" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">webpack buildHttp: allowedUris allow-list bypass via URL userinfo (@) leading to build-time SSRF behavior</p>
+              <div class="fix-box"><code>5.104.1</code></div>
+            </div></div>
+    </div>
+    <div class="comp-card" style="border-left-color:var(--high)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">react</span>
+          <code class="comp-ver">^19.2.0</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill high">1 HIGH</span><span class="pill medium">1 MEDIUM</span></div>
+      </div>
+      <div class="adv-list">
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">GHSA-hg79-j56m-fxgv</span>
+                  
+                  
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val dim">—</span>
+                  <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Cross-Site Scripting in react</p>
+              <div class="fix-box"><code>0.14.0</code></div>
+            </div>
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill medium" style="font-size:0.72rem">MEDIUM</span>
+                  <span class="adv-id">GHSA-g53w-52xc-2j85</span>
+                  <span class="cve-tag">CVE-2013-7035</span>
+                  <span class="cvss-badge">6.5</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val dim">—</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://nvd.nist.gov/vuln/detail/CVE-2013-7035" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Cross-Site Scripting in react</p>
+              <div class="fix-box"><code>0.4.2</code><code>0.5.2</code></div>
+            </div></div>
+    </div>
+    <div class="comp-card" style="border-left-color:var(--medium)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">react-dom</span>
+          <code class="comp-ver">^19.2.0</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill medium">1 MEDIUM</span></div>
+      </div>
+      <div class="adv-list">
+            <div class="adv-row">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill medium" style="font-size:0.72rem">MEDIUM</span>
+                  <span class="adv-id">GHSA-mvjj-gqq2-p4hw</span>
+                  <span class="cve-tag">CVE-2018-6341</span>
+                  <span class="cvss-badge">6.1</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">10.6%</span>
+                  <span class="src-tag">ghsa</span> <span class="src-tag">osv</span>
+                  <span class="conf-tag conf-med">2 sources</span>
+                  <a href="https://nvd.nist.gov/vuln/detail/CVE-2018-6341" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Cross-Site Scripting in react-dom</p>
+              <div class="fix-box"><code>16.0.1</code><code>16.1.2</code><code>16.2.1</code><code>16.3.3</code><code>16.4.2</code></div>
+            </div></div>
+    </div>
+
+  <div class="footer">Supply Chain Scanner · 2026-04-13T07:09:06.983053+00:00</div>
+</div>
+<script>
+(function(){
+  const btns=document.querySelectorAll('.fbtn');
+  const cards=document.querySelectorAll('.comp-card');
+  btns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      btns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const sev=btn.dataset.sev;
+      cards.forEach(card=>{
+        if(sev==='all'){card.style.display='';return}
+        const pills=card.querySelectorAll('.comp-pills .pill');
+        let match=false;
+        pills.forEach(p=>{if(p.classList.contains(sev))match=true});
+        card.style.display=match?'':'none';
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

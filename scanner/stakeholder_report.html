@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supply Chain Scanner — Executive Security Briefing</title>
+<style>
+:root {
+  --bg:#09090b;--surface:#18181b;--surface2:#27272a;--border:#3f3f46;
+  --text:#fafafa;--muted:#a1a1aa;--critical:#ef4444;--high:#f97316;
+  --medium:#eab308;--low:#22d3ee;--green:#22c55e;--blue:#3b82f6;
+  --purple:#a78bfa;--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);padding:28px;line-height:1.6}
+.container{max-width:960px;margin:0 auto}
+.mono{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.85rem}
+
+.hero{background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(59,130,246,0.06));
+  border:1px solid var(--border);border-radius:var(--radius);padding:36px;margin-bottom:28px;text-align:center}
+.hero h1{font-size:1.65rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px}
+.hero .sub{color:var(--muted);font-size:0.9rem}
+.hero .big-number{font-size:4rem;font-weight:900;color:var(--critical);line-height:1;margin:20px 0 4px}
+.hero .big-label{font-size:0.95rem;color:var(--muted);font-weight:600}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;text-align:center}
+.kpi .num{font-size:2.2rem;font-weight:800;line-height:1}
+.kpi .label{color:var(--muted);font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-top:6px}
+.kpi .detail{color:var(--muted);font-size:0.75rem;margin-top:4px}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px}
+.section h2{font-size:1.1rem;font-weight:700;margin-bottom:14px;letter-spacing:-0.01em}
+
+.comp-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.comp-table th{text-align:left;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);font-weight:600;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em}
+.comp-table td{padding:10px 12px;border:1px solid var(--border)}
+.comp-table tr:hover td{background:rgba(255,255,255,0.02)}
+
+.pill{font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:99px;display:inline-block}
+.pill.critical{background:rgba(239,68,68,0.15);color:var(--critical)}
+.pill.high{background:rgba(249,115,22,0.15);color:var(--high)}
+.pill.medium{background:rgba(234,179,8,0.15);color:var(--medium)}
+.pill.low{background:rgba(34,211,238,0.15);color:var(--low)}
+
+.win{color:var(--green);font-weight:700} .lose{color:var(--critical);font-weight:700}
+.partial{color:var(--medium);font-weight:700} .na{color:var(--muted)}
+
+/* Head-to-head grid */
+.h2h{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;margin-bottom:0;font-size:0.88rem}
+.h2h>div{padding:12px 16px;border-bottom:1px solid var(--border)}
+.h2h .hdr{background:var(--surface2);font-weight:700;font-size:0.75rem;text-transform:uppercase;
+  letter-spacing:0.05em;color:var(--muted)} 
+.h2h .metric{font-weight:600;color:var(--text)}
+.h2h .val{text-align:center}
+
+.gap-card{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+@media(max-width:700px){.gap-card{grid-template-columns:1fr}}
+.gap-card>div{padding:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.gap-card .big{font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:6px}
+.gap-card .title{font-weight:700;font-size:0.85rem;margin-bottom:4px}
+.gap-card .desc{color:var(--muted);font-size:0.8rem}
+
+.footer{text-align:center;color:var(--muted);font-size:0.72rem;padding:24px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Supply Chain Security — Executive Briefing</h1>
+  <div class="sub">Real scan comparison · Our Scanner vs Trivy vs OSV.dev · 2026-04-13 13:37 UTC</div>
+  <div class="big-number">430</div>
+  <div class="big-label">Total Vulnerabilities Found Across 762 Components</div>
+  <div style="margin-top:12px;font-size:0.88rem;color:var(--muted)">
+    <strong style="color:var(--critical)">23</strong> Critical · 
+    <strong style="color:var(--high)">83</strong> High ·
+    Across npm, system packages, VS Code extensions, and JetBrains IDEs
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="num" style="color:var(--green)">762</div>
+    <div class="label">Components Scanned</div>
+    <div class="detail">620 project + 142 system</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--critical)">430</div>
+    <div class="label">Vulnerabilities</div>
+    <div class="detail">62 project + 368 system</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--blue)">52</div>
+    <div class="label">Multi-Source Confirmed</div>
+    <div class="detail">Corroborated by 2+ intel sources</div>
+  </div>
+  <div class="kpi">
+    <div class="num" style="color:var(--purple)">4</div>
+    <div class="label">Intel Sources</div>
+    <div class="detail">OSV · GHSA · NVD · Sonatype</div>
+  </div>
+</div>
+
+<!-- Head-to-Head Comparison -->
+<div class="section">
+  <h2>Head-to-Head: Real Data Comparison</h2>
+  <p style="color:var(--muted);font-size:0.82rem;margin-bottom:16px">
+    All numbers from live scans on the same machine and codebase. No estimates — every cell is real.
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr>
+      <th>Metric</th>
+      <th style="text-align:center;color:var(--green)">Our Scanner</th>
+      <th style="text-align:center;color:var(--blue)">Trivy</th>
+      <th style="text-align:center;color:var(--purple)">OSV.dev</th>
+    </tr>
+    <tr>
+      <td style="font-weight:600">Project Dependencies Scanned</td>
+      <td class="val win" style="text-align:center">620</td>
+      <td class="val" style="text-align:center">620</td>
+      <td class="val" style="text-align:center">Manual</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">Project Vulns Found</td>
+      <td class="val win" style="text-align:center">62</td>
+      <td class="val" style="text-align:center">22</td>
+      <td class="val" style="text-align:center">57</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">System Packages Scanned</td>
+      <td class="val win" style="text-align:center">142</td>
+      <td class="val lose" style="text-align:center">0 *</td>
+      <td class="val lose" style="text-align:center">0</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">System Package Vulns</td>
+      <td class="val win" style="text-align:center">331</td>
+      <td class="val lose" style="text-align:center">0 *</td>
+      <td class="val lose" style="text-align:center">0</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">VS Code Extension Vulns</td>
+      <td class="val win" style="text-align:center">4 (ext-level)</td>
+      <td class="val" style="text-align:center">62 (dep-level)</td>
+      <td class="val lose" style="text-align:center">0</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">JetBrains IDE CVEs</td>
+      <td class="val win" style="text-align:center">33</td>
+      <td class="val" style="text-align:center">32 (dep-level)</td>
+      <td class="val lose" style="text-align:center">0</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">Intelligence Sources</td>
+      <td class="val win" style="text-align:center">4</td>
+      <td class="val" style="text-align:center">1</td>
+      <td class="val" style="text-align:center">1</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">EPSS Risk Scoring</td>
+      <td class="val win" style="text-align:center">Yes</td>
+      <td class="val lose" style="text-align:center">No</td>
+      <td class="val lose" style="text-align:center">No</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">CISA KEV Integration</td>
+      <td class="val win" style="text-align:center">Yes</td>
+      <td class="val lose" style="text-align:center">No</td>
+      <td class="val lose" style="text-align:center">No</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600">Total Findings (All Surfaces)</td>
+      <td class="val win" style="text-align:center"><strong>430</strong></td>
+      <td class="val" style="text-align:center">116</td>
+      <td class="val" style="text-align:center">57</td>
+    </tr>
+  </table>
+  </div>
+  <p style="color:var(--muted);font-size:0.75rem;margin-top:10px">* Trivy scans system packages inside Docker containers only, not on the host desktop. Our scanner audits the developer workstation directly.</p>
+</div>
+
+<!-- What Competitors Miss -->
+<div class="section" style="background:linear-gradient(135deg,rgba(239,68,68,0.04),rgba(34,197,94,0.03))">
+  <h2>What Competitors Miss — Blind Spots</h2>
+  <div class="gap-card">
+    <div style="border-top:3px solid var(--critical)">
+      <div class="big" style="color:var(--critical)">331</div>
+      <div class="title">System Package Vulns</div>
+      <div class="desc">Homebrew, dpkg, rpm packages on developer machines — <strong>invisible</strong> to Trivy (host mode) and OSV.dev.</div>
+    </div>
+    <div style="border-top:3px solid var(--high)">
+      <div class="big" style="color:var(--high)">33</div>
+      <div class="title">JetBrains IDE CVEs</div>
+      <div class="desc">9 IDE installations + 57 plugins. Neither competitor scans IDE-level CVEs via NVD CPE.</div>
+    </div>
+    <div style="border-top:3px solid var(--purple)">
+      <div class="big" style="color:var(--purple)">5</div>
+      <div class="title">Sonatype-Exclusive Findings</div>
+      <div class="desc">Proprietary intelligence from Sonatype research — not in any public database used by Trivy or OSV.dev.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Risk Prioritization -->
+<div class="section">
+  <h2>Risk Prioritization — Highest EPSS Exploit Probability</h2>
+  <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px">
+    EPSS (Exploit Prediction Scoring System) predicts real-world exploitation likelihood. 
+    <strong>Neither Trivy nor OSV.dev provides this.</strong> Higher = more likely to be exploited in the wild.
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>CVE</th><th>Package</th><th>Severity</th><th>EPSS Probability</th><th style="text-align:center">In Trivy?</th></tr>
+    <tr><td class="mono">CVE-2022-46175</td><td>json5</td><td><span class="pill high">HIGH</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:47%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">46.5%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2018-6341</td><td>react-dom</td><td><span class="pill medium">MEDIUM</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:11%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">10.6%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2021-42740</td><td>shell-quote</td><td><span class="pill critical">CRITICAL</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:9%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">9.0%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2020-8203</td><td>lodash</td><td><span class="pill high">HIGH</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:4%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">3.6%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2022-25858</td><td>terser</td><td><span class="pill high">HIGH</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:4%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">3.6%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2024-29180</td><td>webpack-dev-middleware</td><td><span class="pill high">HIGH</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:3%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">3.4%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2024-43788</td><td>webpack</td><td><span class="pill medium">MEDIUM</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:2%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">1.8%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+<tr><td class="mono">CVE-2017-20165</td><td>debug</td><td><span class="pill high">HIGH</span></td><td><div style="background:var(--surface2);border-radius:6px;height:20px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;height:100%;width:2%;background:linear-gradient(90deg,rgba(239,68,68,0.3),rgba(239,68,68,0.8));border-radius:6px"></div><span style="position:relative;padding:0 8px;font-size:0.78rem;font-weight:700">1.6%</span></div></td><td style="text-align:center"><span class="lose">No</span></td></tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- Top Critical Findings -->
+<div class="section">
+  <h2>Top Critical & High Findings</h2>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>CVE</th><th>Package</th><th>Ecosystem</th><th>Severity</th><th>EPSS</th><th>Sources</th><th>In Trivy?</th></tr>
+    <tr><td class="mono">CVE-2023-28154</td><td>webpack</td><td>npm</td><td><span class="pill critical">CRITICAL</span></td><td>1.2%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2020-36632</td><td>flat</td><td>npm</td><td><span class="pill critical">CRITICAL</span></td><td>0.8%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2021-42740</td><td>shell-quote</td><td>npm</td><td><span class="pill critical">CRITICAL</span></td><td>9.0%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2020-8203</td><td>lodash</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>3.6%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2026-4800</td><td>lodash</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.1%</td><td>3</td><td>Yes</td></tr>
+<tr><td class="mono">GHSA-5c6j-r48x-rmvq</td><td>serialize-javascript</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>—</td><td>1</td><td>No</td></tr>
+<tr><td class="mono">sonatype-2026-000632</td><td>serialize-javascript</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>—</td><td>1</td><td>No</td></tr>
+<tr><td class="mono">CVE-2024-37890</td><td>ws</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.5%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">GHSA-5v72-xg48-5rpm</td><td>ws</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>—</td><td>1</td><td>No</td></tr>
+<tr><td class="mono">CVE-2026-32141</td><td>flatted</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.0%</td><td>3</td><td>No</td></tr>
+<tr><td class="mono">CVE-2026-33228</td><td>flatted</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.0%</td><td>3</td><td>No</td></tr>
+<tr><td class="mono">CVE-2017-1000048</td><td>qs</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.5%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2022-24999</td><td>qs</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>1.5%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2022-25883</td><td>semver</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>0.6%</td><td>2</td><td>No</td></tr>
+<tr><td class="mono">CVE-2015-8855</td><td>semver</td><td>npm</td><td><span class="pill high">HIGH</span></td><td>1.1%</td><td>2</td><td>No</td></tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- Coverage Matrix -->
+<div class="section">
+  <h2>Attack Surface Coverage</h2>
+  <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px">Where each tool provides coverage across the full developer supply chain.</p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr>
+      <th>Attack Surface</th>
+      <th style="text-align:center;color:var(--green)">Our Scanner</th>
+      <th style="text-align:center;color:var(--blue)">Trivy</th>
+      <th style="text-align:center;color:var(--purple)">OSV.dev</th>
+    </tr>
+    <tr><td style="font-weight:600">npm / Node.js Dependencies</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td></tr>
+    <tr><td style="font-weight:600">.NET / NuGet Dependencies</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td></tr>
+    <tr><td style="font-weight:600">Maven / Java Dependencies</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td></tr>
+    <tr><td style="font-weight:600">Python / PyPI Dependencies</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td><td class="val win" style="text-align:center">&#10003;</td></tr>
+    <tr><td style="font-weight:600">Host System Packages (Homebrew/dpkg)</td><td class="val win" style="text-align:center">&#10003;</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">VS Code Extensions</td><td class="val win" style="text-align:center">&#10003;</td><td class="val partial" style="text-align:center">&#9651; deps only</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">JetBrains IDE CVEs</td><td class="val win" style="text-align:center">&#10003;</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">JetBrains Plugin Inventory</td><td class="val win" style="text-align:center">&#10003; (57 found)</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">EPSS Exploit Probability</td><td class="val win" style="text-align:center">&#10003;</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">CISA KEV (Known Exploited)</td><td class="val win" style="text-align:center">&#10003;</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">Multi-Source Confidence Scoring</td><td class="val win" style="text-align:center">&#10003; (52 corroborated)</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+    <tr><td style="font-weight:600">Sonatype Proprietary Intelligence</td><td class="val win" style="text-align:center">&#10003;</td><td class="val lose" style="text-align:center">&#10007;</td><td class="val lose" style="text-align:center">&#10007;</td></tr>
+  </table>
+  </div>
+</div>
+
+<!-- Bottom Line -->
+<div class="section" style="background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(59,130,246,0.04));text-align:center;padding:32px">
+  <h2 style="font-size:1.2rem;margin-bottom:16px">Bottom Line</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:20px">
+    <div>
+      <div style="font-size:2.8rem;font-weight:900;color:var(--green)">430</div>
+      <div style="font-size:0.85rem;font-weight:600">Our Scanner</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Full supply chain</div>
+    </div>
+    <div>
+      <div style="font-size:2.8rem;font-weight:900;color:var(--blue)">116</div>
+      <div style="font-size:0.85rem;font-weight:600">Trivy</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Project + extension deps</div>
+    </div>
+    <div>
+      <div style="font-size:2.8rem;font-weight:900;color:var(--purple)">57</div>
+      <div style="font-size:0.85rem;font-weight:600">OSV.dev</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Project packages only</div>
+    </div>
+  </div>
+  <p style="font-size:0.95rem;color:var(--text);max-width:640px;margin:0 auto">
+    Our scanner found <strong style="color:var(--green)">314</strong> more vulnerabilities than Trivy
+    by covering system packages, IDE extensions, and leveraging 4 intelligence sources with EPSS risk prioritization.
+  </p>
+</div>
+
+<div class="footer">
+  Supply Chain Scanner — Executive Security Briefing · Generated 2026-04-13 13:37 UTC<br>
+  762 components · 430 vulnerabilities · 4 intelligence sources · Real scan data
+</div>
+
+</div></body></html>

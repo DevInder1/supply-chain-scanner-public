@@ -1,0 +1,14 @@
+# Environment secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Scanner artifacts
+scanner/storage/vuln_cache.db
+scanner/report.json
+scanner/report.html
+scanner/vulnerabilities.html
