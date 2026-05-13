@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supply Chain Security Report</title>
+<style>
+:root {
+  --bg:#09090b; --surface:#18181b; --surface2:#27272a;
+  --border:#3f3f46; --text:#fafafa; --muted:#a1a1aa;
+  --critical:#ef4444; --high:#f97316; --medium:#eab308; --low:#22d3ee;
+  --green:#22c55e; --blue:#3b82f6;
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);padding:24px;line-height:1.5}
+.container{max-width:1200px;margin:0 auto}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-0.02em}
+h2{font-size:1.1rem;font-weight:600;margin-bottom:12px;color:var(--muted)}
+h3{font-size:0.95rem;font-weight:600;margin-bottom:8px}
+
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:center;
+  padding:20px 24px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header-meta{color:var(--muted);font-size:0.82rem}
+
+/* Grid */
+.grid{display:grid;gap:16px;margin-bottom:20px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.grid-4,.grid-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card-sm{padding:16px}
+
+/* Metric Cards */
+.metric{text-align:center}
+.metric .value{font-size:2.2rem;font-weight:800;line-height:1}
+.metric .label{font-size:0.78rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:0.06em;margin-top:6px}
+
+/* Risk Grade */
+.grade-ring{width:100px;height:100px;border-radius:50%;
+  border:6px solid #2e7d32;display:flex;align-items:center;justify-content:center;
+  margin:0 auto 8px}
+.grade-ring .letter{font-size:2.4rem;font-weight:800;color:#2e7d32}
+
+/* Severity bar */
+.sev-bar{display:flex;height:14px;border-radius:99px;overflow:hidden;margin:8px 0}
+.sev-bar div{height:100%;min-width:2px}
+.sev-bar .bar-c{background:var(--critical)}
+.sev-bar .bar-h{background:var(--high)}
+.sev-bar .bar-m{background:var(--medium)}
+.sev-bar .bar-l{background:var(--low)}
+
+.sev-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:0.8rem;color:var(--muted)}
+.sev-legend span::before{content:'';display:inline-block;width:10px;height:10px;
+  border-radius:3px;margin-right:4px;vertical-align:middle}
+.sev-legend .leg-c::before{background:var(--critical)}
+.sev-legend .leg-h::before{background:var(--high)}
+.sev-legend .leg-m::before{background:var(--medium)}
+.sev-legend .leg-l::before{background:var(--low)}
+
+/* Source bars */
+.source-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.source-label{width:80px;font-size:0.78rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.04em;text-align:right}
+.source-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.source-bar-fill{height:100%;background:var(--blue);border-radius:99px;
+  transition:width 0.4s ease}
+.source-count{font-size:0.82rem;width:40px;color:var(--muted)}
+
+/* Confidence */
+.conf-row{display:flex;gap:12px;margin-top:10px}
+.conf-chip{font-size:0.82rem;padding:4px 12px;border-radius:99px;font-weight:600}
+.conf-high{background:rgba(34,197,94,0.15);color:var(--green)}
+.conf-med{background:rgba(234,179,8,0.15);color:var(--medium)}
+.conf-low{background:rgba(161,161,170,0.1);color:var(--muted)}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);
+  padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:0.88rem}
+tr:hover{background:rgba(255,255,255,0.03)}
+.row-critical td:first-child{border-left:3px solid var(--critical);padding-left:9px}
+.row-high td:first-child{border-left:3px solid var(--high);padding-left:9px}
+.row-medium td:first-child{border-left:3px solid var(--medium);padding-left:9px}
+.comp-name{font-weight:600}
+code{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius:4px}
+
+/* Pills */
+.pill{font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;
+  display:inline-block;margin-right:3px}
+.pill.critical{background:rgba(239,68,68,0.15);color:var(--critical)}
+.pill.high{background:rgba(249,115,22,0.15);color:var(--high)}
+.pill.medium{background:rgba(234,179,8,0.15);color:var(--medium)}
+.pill.low{background:rgba(34,211,238,0.15);color:var(--low)}
+
+/* Eco chips */
+.eco-chips{display:flex;flex-wrap:wrap;gap:8px}
+.eco-chip{background:var(--surface2);padding:6px 14px;border-radius:99px;font-size:0.82rem;color:var(--muted)}
+.eco-chip strong{color:var(--text);margin-right:4px}
+.domain-tabs{display:flex;gap:8px;margin:10px 0 12px;flex-wrap:wrap}
+.domain-tab{background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  padding:6px 12px;border-radius:999px;font-size:0.78rem;cursor:pointer}
+.domain-tab.active{color:var(--text);border-color:var(--blue)}
+.toggle-critical{margin-top:8px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.8rem}
+
+/* Notes */
+.notes ul{padding-left:20px;color:var(--muted);font-size:0.85rem}
+.notes li{margin-bottom:6px}
+
+/* Footer */
+.footer{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;padding:16px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>🛡️ Supply Chain Security Report</h1>
+      <div class="header-meta">2026-05-07T15:06:38.337762+00:00 · 284 components scanned</div>
+    </div>
+    <div style="text-align:right">
+      <div class="header-meta">Sources: GHSA, SONATYPE</div>
+      <div class="header-meta">13 findings · 0 multi-source confirmed</div>
+    </div>
+  </div>
+
+  <!-- Top Metrics -->
+  <div class="grid grid-4" style="margin-bottom:20px">
+    <div class="card card-sm metric">
+      <div class="value" style="color:var(--critical)">0</div>
+      <div class="label">Critical</div>
+    </div>
+    <div class="card card-sm metric">
+      <div class="value" style="color:var(--high)">7</div>
+      <div class="label">High</div>
+    </div>
+    <div class="card card-sm metric">
+      <div class="value" style="color:var(--medium)">2</div>
+      <div class="label">Medium</div>
+    </div>
+    <div class="card card-sm metric">
+      <div class="value" style="color:var(--low)">4</div>
+      <div class="label">Low</div>
+    </div>
+  </div>
+
+  <!-- Risk + Distribution + Sources row -->
+  <div class="grid grid-3">
+    <!-- Risk Grade -->
+    <div class="card" style="text-align:center">
+      <h2>Risk Grade</h2>
+      <div class="grade-ring"><span class="letter">A</span></div>
+      <div style="font-size:0.85rem;color:var(--muted)">Score: 0.1 / component</div>
+    </div>
+
+    <!-- Severity Distribution -->
+    <div class="card">
+      <h2>Severity Distribution</h2>
+      <div class="sev-bar">
+        <div class="bar-c" style="width:0.0%"></div>
+        <div class="bar-h" style="width:53.8%"></div>
+        <div class="bar-m" style="width:15.4%"></div>
+        <div class="bar-l" style="width:30.8%"></div>
+      </div>
+      <div class="sev-legend">
+        <span class="leg-c">Critical 0</span>
+        <span class="leg-h">High 7</span>
+        <span class="leg-m">Medium 2</span>
+        <span class="leg-l">Low 4</span>
+      </div>
+      <div style="margin-top:14px;font-size:0.82rem;color:var(--muted)">
+        Affected: <strong style="color:var(--text)">4</strong> components of 284
+      </div>
+    </div>
+
+    <!-- Intelligence Sources -->
+    <div class="card">
+      <h2>Intelligence Sources</h2>
+      <div class="source-bar-row"><span class="source-label">SONATYPE</span><div class="source-bar-track"><div class="source-bar-fill" style="width:92%"></div></div><span class="source-count">12</span></div><div class="source-bar-row"><span class="source-label">GHSA</span><div class="source-bar-track"><div class="source-bar-fill" style="width:8%"></div></div><span class="source-count">1</span></div>
+      <ul style="margin-top:10px;padding-left:18px;color:var(--muted);font-size:0.78rem"><li><strong>OSV</strong>: SKIPPED - offline mode</li><li><strong>NVD</strong>: SKIPPED - offline mode</li><li><strong>GHSA</strong>: SKIPPED - offline mode</li><li><strong>SONATYPE</strong>: SKIPPED - offline mode</li></ul>
+      <div class="conf-row">
+        <span class="conf-chip conf-high">✓ 0 high</span>
+        <span class="conf-chip conf-med">~ 0 medium</span>
+        <span class="conf-chip conf-low">? 13 low</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Risk Components -->
+  <div class="card" style="margin-top:20px">
+    <h2>🔥 Top Risk Components</h2>
+    <div class="domain-tabs">
+      <button class="domain-tab active" data-domain="all">All (13)</button>
+      <button class="domain-tab" data-domain="project">Project (13)</button>
+      <button class="domain-tab" data-domain="system">System (0)</button>
+      <button class="domain-tab" data-domain="extensions">Extensions (0)</button>
+    </div>
+    <label class="toggle-critical">
+      <input id="criticalOnlyToggle" type="checkbox" />
+      Show critical-only rows
+    </label>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th><th>Version</th><th>Domain</th><th>Vulns</th><th>Severity</th>
+          <th>Max CVSS</th><th>KEV</th><th>Max EPSS</th><th>Fix Version</th>
+        </tr>
+      </thead>
+      <tbody><tr class="row-high" data-domain="project" data-has-critical="0"><td class="comp-name">7zip-bin</td><td><code>5.2.0</code></td><td>Project</td><td>6</td><td>C0 / H3 / M1 / L2</td><td>7.8</td><td>—</td><td>38.4%</td><td><code>N/A</code></td></tr><tr class="row-high" data-domain="project" data-has-critical="0"><td class="comp-name">electron-winstaller</td><td><code>5.4.0</code></td><td>Project</td><td>5</td><td>C0 / H3 / M0 / L2</td><td>7.8</td><td>—</td><td>0.2%</td><td><code>N/A</code></td></tr><tr class="row-high" data-domain="project" data-has-critical="0"><td class="comp-name">cacheable-request</td><td><code>7.0.4</code></td><td>Project</td><td>1</td><td>C0 / H1 / M0 / L0</td><td>7.5</td><td>—</td><td>0.0%</td><td><code>10.2.7</code></td></tr><tr class="row-medium" data-domain="project" data-has-critical="0"><td class="comp-name">inflight</td><td><code>1.0.6</code></td><td>Project</td><td>1</td><td>C0 / H0 / M1 / L0</td><td>6.1</td><td>—</td><td>0.0%</td><td><code>N/A</code></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h2>📦 Project Vulnerabilities</h2>
+    <label class="toggle-critical">
+      <input id="projectCriticalOnlyToggle" type="checkbox" />
+      Show critical-only project packages
+    </label>
+    <table>
+      <thead>
+        <tr>
+          <th>Package</th><th>Version</th><th>Total</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th>
+          <th>Fix Version</th>
+        </tr>
+      </thead>
+      <tbody><tr data-has-critical='0'><td class='comp-name'>7zip-bin</td><td><code>5.2.0</code></td><td>6</td><td>0</td><td>3</td><td>1</td><td>2</td><td><code>N/A</code></td></tr><tr data-has-critical='0'><td class='comp-name'>electron-winstaller</td><td><code>5.4.0</code></td><td>5</td><td>0</td><td>3</td><td>0</td><td>2</td><td><code>N/A</code></td></tr><tr data-has-critical='0'><td class='comp-name'>cacheable-request</td><td><code>7.0.4</code></td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td><code>10.2.7</code></td></tr><tr data-has-critical='0'><td class='comp-name'>inflight</td><td><code>1.0.6</code></td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td><code>N/A</code></td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Ecosystem breakdown -->
+  <div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+      <h2>Findings by Ecosystem</h2>
+      <div class="eco-chips"><div class="eco-chip"><strong>13</strong> npm</div></div>
+    </div>
+    <div class="card notes">
+      <h2>Notes</h2>
+      <ul><li>The vulnerabilities array contains one entry per matched advisory. If one component is affected by many advisories, that component will appear repeatedly in the raw findings list. Use affected_components to view grouped results by component.</li></ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    Supply Chain Scanner · Local-first vulnerability intelligence · 2026-05-07T15:06:38.337762+00:00
+  </div>
+</div>
+<script>
+(function(){
+  const tabs=document.querySelectorAll('.domain-tab');
+  const rows=document.querySelectorAll('tbody tr[data-domain]');
+  const criticalOnlyToggle=document.getElementById('criticalOnlyToggle');
+  const projectCriticalOnlyToggle=document.getElementById('projectCriticalOnlyToggle');
+  const projectRows=document.querySelectorAll("div.card table tbody tr[data-has-critical]");
+  let criticalOnly=false;
+  function applyDomainAndCritical(){
+    const active=document.querySelector('.domain-tab.active');
+    const domain=active?active.dataset.domain:'all';
+    rows.forEach(row=>{
+      const domainMatch=domain==='all'||row.dataset.domain===domain;
+      const criticalMatch=!criticalOnly||row.dataset.hasCritical==='1';
+      row.style.display=(domainMatch&&criticalMatch)?'table-row':'none';
+    });
+  }
+  tabs.forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      applyDomainAndCritical();
+    });
+  });
+  if(criticalOnlyToggle){
+    criticalOnlyToggle.addEventListener('change',()=>{
+      criticalOnly=criticalOnlyToggle.checked;
+      applyDomainAndCritical();
+    });
+  }
+  if(projectCriticalOnlyToggle){
+    projectCriticalOnlyToggle.addEventListener('change',()=>{
+      const enabled=projectCriticalOnlyToggle.checked;
+      projectRows.forEach(row=>{
+        const keep=!enabled||row.dataset.hasCritical==='1';
+        row.style.display=keep?'table-row':'none';
+      });
+    });
+  }
+  applyDomainAndCritical();
+})();
+</script>
+</body>
+</html>

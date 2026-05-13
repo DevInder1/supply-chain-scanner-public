@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vulnerabilities &amp; Risk Report</title>
+<style>
+:root {
+  --bg:#09090b; --surface:#18181b; --surface2:#27272a;
+  --border:#3f3f46; --text:#fafafa; --muted:#a1a1aa;
+  --critical:#ef4444; --high:#f97316; --medium:#eab308; --low:#22d3ee;
+  --green:#22c55e; --blue:#3b82f6; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);padding:24px;line-height:1.5}
+.container{max-width:1060px;margin:0 auto}
+
+/* Header */
+.hdr{padding:20px 24px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:20px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.hdr h1{font-size:1.4rem;font-weight:700;letter-spacing:-0.02em}
+.hdr-meta{color:var(--muted);font-size:0.8rem}
+
+/* Summary strip */
+.strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.strip{grid-template-columns:repeat(3,1fr)}}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;text-align:center}
+.scard .sv{font-size:1.8rem;font-weight:800;line-height:1}
+.scard .sl{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px}
+
+/* Scatter plot */
+.scatter-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:20px}
+.scatter-wrap h2{font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--muted)}
+.scatter{position:relative;width:100%;height:260px;border-left:1px solid var(--border);
+  border-bottom:1px solid var(--border)}
+.scatter .axis-x{position:absolute;bottom:-22px;width:100%;display:flex;
+  justify-content:space-between;font-size:0.68rem;color:var(--muted)}
+.scatter .axis-y{position:absolute;left:-30px;height:100%;display:flex;flex-direction:column-reverse;
+  justify-content:space-between;font-size:0.68rem;color:var(--muted)}
+.scatter .axis-label-x{position:absolute;bottom:-38px;left:50%;transform:translateX(-50%);
+  font-size:0.72rem;color:var(--muted)}
+.scatter .axis-label-y{position:absolute;left:-52px;top:50%;transform:translateY(-50%) rotate(-90deg);
+  font-size:0.72rem;color:var(--muted);white-space:nowrap}
+.dot{position:absolute;border-radius:50%;opacity:0.85;cursor:default;z-index:1}
+.dot.critical{background:var(--critical)}
+.dot.high{background:var(--high)}
+.dot.medium{background:var(--medium)}
+.dot.low{background:var(--low)}
+.dot.unknown{background:var(--muted)}
+.scatter .quadrant{position:absolute;right:0;top:0;width:50%;height:40%;
+  background:rgba(239,68,68,0.04);border-radius:0 0 0 8px;
+  display:flex;align-items:flex-start;justify-content:flex-end;
+  padding:6px 8px;font-size:0.68rem;color:rgba(239,68,68,0.5);pointer-events:none}
+
+/* Filter */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.fbtn{background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  padding:6px 16px;border-radius:99px;cursor:pointer;font-size:0.82rem;
+  font-weight:600;transition:all 0.15s}
+.fbtn:hover,.fbtn.active{background:var(--surface2);color:var(--text);border-color:var(--ac,var(--border))}
+.fbtn.active{box-shadow:0 0 0 1px var(--ac,var(--border))}
+.fbtn-count{font-size:0.7rem;background:var(--surface2);padding:1px 7px;border-radius:99px;margin-left:4px;font-weight:700}
+.fbtn.active .fbtn-count{background:rgba(255,255,255,0.1)}
+.adv-row.hidden{display:none}
+.comp-card.hidden{display:none}
+
+/* Component cards */
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:14px;border-left:4px solid var(--border)}
+.comp-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.comp-name{font-weight:700;font-size:1.05rem}
+.comp-ver{font-size:0.82rem;background:var(--surface2);padding:2px 8px;border-radius:4px;margin:0 6px}
+.eco-tag{font-size:0.72rem;color:var(--muted);background:var(--surface2);
+  padding:2px 10px;border-radius:99px}
+.comp-pills{display:flex;gap:4px;flex-wrap:wrap}
+
+/* Pills */
+.pill{font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:99px;display:inline-block}
+.pill.critical{background:rgba(239,68,68,0.15);color:var(--critical)}
+.pill.high{background:rgba(249,115,22,0.15);color:var(--high)}
+.pill.medium{background:rgba(234,179,8,0.15);color:var(--medium)}
+.pill.low{background:rgba(34,211,238,0.15);color:var(--low)}
+.pill.unknown{background:rgba(161,161,170,0.1);color:var(--muted)}
+
+/* Advisory rows */
+.adv-list{display:flex;flex-direction:column;gap:0}
+.adv-row{padding:14px 0;border-top:1px solid var(--border)}
+.adv-row:first-child{border-top:none;padding-top:0}
+.adv-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.adv-id-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.adv-id{font-weight:600;font-family:monospace;font-size:0.88rem}
+.cve-tag{font-size:0.75rem;color:var(--muted);font-family:monospace;
+  background:var(--surface2);padding:2px 8px;border-radius:4px}
+.cvss-badge{font-size:0.72rem;font-weight:700;background:rgba(249,115,22,0.15);
+  color:var(--high);padding:2px 8px;border-radius:4px;font-family:monospace}
+.kev-badge{font-size:0.72rem;font-weight:700;background:rgba(239,68,68,0.2);
+  color:var(--critical);padding:2px 8px;border-radius:4px}
+.adv-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.epss-val{font-size:0.78rem;color:var(--muted);font-family:monospace}
+.epss-val.dim{opacity:0.4}
+.src-tag{font-size:0.65rem;padding:2px 7px;border-radius:6px;
+  background:rgba(59,130,246,0.12);color:var(--blue);font-weight:700;
+  text-transform:uppercase;letter-spacing:0.03em}
+.conf-tag{font-size:0.65rem;padding:2px 8px;border-radius:6px;font-weight:600}
+.conf-high{background:rgba(34,197,94,0.15);color:var(--green)}
+.conf-med{background:rgba(234,179,8,0.12);color:var(--medium)}
+.conf-low{background:rgba(161,161,170,0.08);color:var(--muted)}
+.ref-link{font-size:0.78rem;color:var(--blue);text-decoration:none;font-weight:600}
+.ref-link:hover{text-decoration:underline}
+.adv-desc{color:var(--muted);font-size:0.84rem;margin:8px 0;line-height:1.5}
+.fix-box{font-size:0.82rem;margin-top:8px;padding:8px 14px;border-radius:8px;
+  background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)}
+.fix-box code{background:rgba(34,197,94,0.15);color:var(--green);padding:2px 8px;
+  border-radius:4px;font-size:0.8rem;margin-right:6px}
+.fix-box.no-fix{color:var(--muted);background:var(--surface2);border-color:var(--border)}
+.remediation{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}
+.rem-title{font-size:0.75rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}
+.rem-cmd{display:block;padding:6px 8px;border-radius:6px;background:#111827;color:#a7f3d0;font-size:0.8rem;white-space:pre-wrap}
+.copy-btn,.download-link{margin-top:8px;display:inline-block;font-size:0.76rem;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none;cursor:pointer}
+.download-link{margin-left:8px}
+
+.footer{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;padding:16px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div>
+      <h1>⚡ Vulnerabilities &amp; Risk</h1>
+      <div class="hdr-meta">2026-05-13T06:17:42.632511+00:00</div>
+    </div>
+    <div style="text-align:right">
+      <div class="hdr-meta">284 scanned · 4 affected · 13 findings</div>
+      <div class="hdr-meta">0 multi-source confirmed</div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="strip">
+    <div class="scard"><div class="sv" style="color:var(--critical)">0</div><div class="sl">Critical</div></div>
+    <div class="scard"><div class="sv" style="color:var(--high)">7</div><div class="sl">High</div></div>
+    <div class="scard"><div class="sv" style="color:var(--medium)">2</div><div class="sl">Medium</div></div>
+    <div class="scard"><div class="sv" style="color:var(--low)">4</div><div class="sl">Low</div></div>
+    <div class="scard"><div class="sv">4</div><div class="sl">Components</div></div>
+    <div class="scard"><div class="sv">13</div><div class="sl">Total</div></div>
+  </div>
+
+  <!-- CVSS vs EPSS Scatter -->
+  <div class="scatter-wrap">
+    <h2>CVSS vs EPSS — Risk Heatmap</h2>
+    <div class="scatter">
+      <div class="quadrant">HIGH RISK ZONE</div>
+      <div class="dot high" style="left:38.4%;bottom:78.0%;width:7px;height:7px" title="CVE-2023-31102: CVSS 7.8, EPSS 38.38%"></div><div class="dot high" style="left:0.2%;bottom:78.0%;width:7px;height:7px" title="CVE-2022-46330: CVSS 7.8, EPSS 0.2%"></div><div class="dot high" style="left:0.2%;bottom:73.0%;width:7px;height:7px" title="CVE-2023-52169: CVSS 7.3, EPSS 0.18%"></div><div class="dot medium" style="left:0.2%;bottom:69.0%;width:7px;height:7px" title="CVE-2024-11612: CVSS 6.9, EPSS 0.17%"></div><div class="dot high" style="left:0.1%;bottom:78.0%;width:7px;height:7px" title="CVE-2025-11002: CVSS 7.8, EPSS 0.13%"></div><div class="dot high" style="left:0.1%;bottom:75.0%;width:7px;height:7px" title="CVE-2025-53817: CVSS 7.5, EPSS 0.1%"></div><div class="dot high" style="left:0.1%;bottom:73.0%;width:7px;height:7px" title="CVE-2023-52168: CVSS 7.3, EPSS 0.07%"></div><div class="dot low" style="left:0.1%;bottom:33.0%;width:7px;height:7px" title="CVE-2022-47111: CVSS 3.3, EPSS 0.08%"></div><div class="dot low" style="left:0.1%;bottom:33.0%;width:7px;height:7px" title="CVE-2022-47112: CVSS 3.3, EPSS 0.08%"></div><div class="dot low" style="left:0.1%;bottom:33.0%;width:7px;height:7px" title="CVE-2022-47111: CVSS 3.3, EPSS 0.08%"></div><div class="dot low" style="left:0.1%;bottom:33.0%;width:7px;height:7px" title="CVE-2022-47112: CVSS 3.3, EPSS 0.08%"></div><div class="dot high" style="left:0.0%;bottom:75.0%;width:7px;height:7px" title="GHSA-8x6c-cv3v-vp6g: CVSS 7.5, EPSS 0%"></div><div class="dot medium" style="left:0.0%;bottom:61.0%;width:7px;height:7px" title="sonatype-2023-4801: CVSS 6.1, EPSS 0%"></div>
+      <div class="axis-x"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="axis-y"><span>0</span><span>2.5</span><span>5</span><span>7.5</span><span>10</span></div>
+      <div class="axis-label-x">EPSS (Exploit Probability)</div>
+      <div class="axis-label-y">CVSS Score</div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  
+    <div class="filter-bar">
+      <button class="fbtn active" data-sev="all">All <span class="fbtn-count">13</span></button>
+      <button class="fbtn" data-sev="critical" style="--ac:var(--critical)">Critical <span class="fbtn-count">0</span></button>
+      <button class="fbtn" data-sev="high" style="--ac:var(--high)">High <span class="fbtn-count">7</span></button>
+      <button class="fbtn" data-sev="medium" style="--ac:var(--medium)">Medium <span class="fbtn-count">2</span></button>
+      <button class="fbtn" data-sev="low" style="--ac:var(--low)">Low <span class="fbtn-count">4</span></button>
+    </div>
+
+  <!-- Vulnerability Cards -->
+  
+    <div class="comp-card" style="border-left-color:var(--high)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">7zip-bin</span>
+          <code class="comp-ver">5.2.0</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill high">3 HIGH</span><span class="pill medium">1 MEDIUM</span><span class="pill low">2 LOW</span></div>
+      </div>
+      <div class="remediation"><div class="rem-title">Recommended fix action</div><code class="rem-cmd">npm update 7zip-bin</code><button class="copy-btn" data-copy="npm update 7zip-bin">Copy command</button><a class="download-link" href="https://www.npmjs.com/package/7zip-bin" target="_blank" rel="noopener noreferrer">Download update</a></div>
+      <div class="adv-list">
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2023-31102</span>
+                  <span class="cve-tag">CVE-2023-31102</span>
+                  <span class="cvss-badge">7.8</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">38.4%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">Ppmd7.c in 7-Zip before 23.00 allows an integer underflow and invalid read operation via a crafted 7Z archive.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2025-11002</span>
+                  <span class="cve-tag">CVE-2025-11002</span>
+                  <span class="cvss-badge">7.8</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip ZIP File Parsing Directory Traversal Remote Code Execution Vulnerability. This vulnerability allows remote attackers to execute arbitrary code on affected installations of 7-Zip. Interaction with this product is required to exploit this vulnerability but attack vectors may vary depending on...</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2025-53817</span>
+                  <span class="cve-tag">CVE-2025-53817</span>
+                  <span class="cvss-badge">7.5</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip is a file archiver with a high compression ratio. 7-Zip supports extracting from Compound Documents. Prior to version 25.0.0, a null pointer dereference in the Compound handler may lead to denial of service. Version 25.0.0 contains a fix cor the issue.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="medium">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill medium" style="font-size:0.72rem">MEDIUM</span>
+                  <span class="adv-id">CVE-2024-11612</span>
+                  <span class="cve-tag">CVE-2024-11612</span>
+                  <span class="cvss-badge">6.9</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.2%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip CopyCoder Infinite Loop Denial-of-Service Vulnerability. This vulnerability allows remote attackers to create a denial-of-service condition on affected installations of 7-Zip. Interaction with this library is required to exploit this vulnerability but attack vectors may vary depending on th...</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="low">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">CVE-2022-47111</span>
+                  <span class="cve-tag">CVE-2022-47111</span>
+                  <span class="cvss-badge">3.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip 22.01 does not report an error for certain invalid xz files, involving block flags and reserved bits. Some later versions are unaffected.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="low">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">CVE-2022-47112</span>
+                  <span class="cve-tag">CVE-2022-47112</span>
+                  <span class="cvss-badge">3.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip 22.01 does not report an error for certain invalid xz files, involving stream flags and reserved bits. Some later versions are unaffected.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div></div>
+    </div>
+    <div class="comp-card" style="border-left-color:var(--high)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">electron-winstaller</span>
+          <code class="comp-ver">5.4.0</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill high">3 HIGH</span><span class="pill low">2 LOW</span></div>
+      </div>
+      <div class="remediation"><div class="rem-title">Recommended fix action</div><code class="rem-cmd">npm update electron-winstaller</code><button class="copy-btn" data-copy="npm update electron-winstaller">Copy command</button><a class="download-link" href="https://www.npmjs.com/package/electron-winstaller" target="_blank" rel="noopener noreferrer">Download update</a></div>
+      <div class="adv-list">
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2022-46330</span>
+                  <span class="cve-tag">CVE-2022-46330</span>
+                  <span class="cvss-badge">7.8</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.2%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">Squirrel.Windows is both a toolset and a library that provides installation and update functionality for Windows desktop applications. Installers generated by Squirrel.Windows 2.0.1 and earlier contain an issue with the DLL search path, which may lead to insecurely loading Dynamic Link Libraries....</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2023-52168</span>
+                  <span class="cve-tag">CVE-2023-52168</span>
+                  <span class="cvss-badge">7.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">The NtfsHandler.cpp NTFS handler in 7-Zip before 24.01 (for 7zz) contains a heap-based buffer overflow that allows an attacker to overwrite two bytes at multiple offsets beyond the allocated buffer size: buffer+512*i-2, for i=9, i=10, i=11, etc.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">CVE-2023-52169</span>
+                  <span class="cve-tag">CVE-2023-52169</span>
+                  <span class="cvss-badge">7.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.2%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">The NtfsHandler.cpp NTFS handler in 7-Zip before 24.01 (for 7zz) contains an out-of-bounds read that allows an attacker to read beyond the intended buffer. The bytes read beyond the intended buffer are presented as a part of a filename listed in the file system image. This has security relevance ...</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="low">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">CVE-2022-47111</span>
+                  <span class="cve-tag">CVE-2022-47111</span>
+                  <span class="cvss-badge">3.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip 22.01 does not report an error for certain invalid xz files, involving block flags and reserved bits. Some later versions are unaffected.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div>
+            <div class="adv-row" data-sev="low">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill low" style="font-size:0.72rem">LOW</span>
+                  <span class="adv-id">CVE-2022-47112</span>
+                  <span class="cve-tag">CVE-2022-47112</span>
+                  <span class="cvss-badge">3.3</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val">0.1%</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">7-Zip 22.01 does not report an error for certain invalid xz files, involving stream flags and reserved bits. Some later versions are unaffected.</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div></div>
+    </div>
+    <div class="comp-card" style="border-left-color:var(--high)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">cacheable-request</span>
+          <code class="comp-ver">7.0.4</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill high">1 HIGH</span></div>
+      </div>
+      <div class="remediation"><div class="rem-title">Recommended fix action</div><code class="rem-cmd">npm install cacheable-request@10.2.7</code><button class="copy-btn" data-copy="npm install cacheable-request@10.2.7">Copy command</button><a class="download-link" href="https://www.npmjs.com/package/cacheable-request" target="_blank" rel="noopener noreferrer">Download update</a></div>
+      <div class="adv-list">
+            <div class="adv-row" data-sev="high">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill high" style="font-size:0.72rem">HIGH</span>
+                  <span class="adv-id">GHSA-8x6c-cv3v-vp6g</span>
+                  
+                  <span class="cvss-badge">7.5</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val dim">—</span>
+                  <span class="src-tag">ghsa</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  <a href="https://github.com/jaredwray/cacheable-request/security/advisories/GHSA-8x6c-cv3v-vp6g" target="_blank" rel="noopener noreferrer" class="ref-link">↗ Details</a>
+                </div>
+              </div>
+              <p class="adv-desc">Withdrawn: cacheable-request depends on http-cache-semantics, which is vulnerable to Regular Expression Denial of Service</p>
+              <div class="fix-box"><code>10.2.7</code></div>
+            </div></div>
+    </div>
+    <div class="comp-card" style="border-left-color:var(--medium)">
+      <div class="comp-header">
+        <div>
+          <span class="comp-name">inflight</span>
+          <code class="comp-ver">1.0.6</code>
+          <span class="eco-tag">npm</span>
+        </div>
+        <div class="comp-pills"><span class="pill medium">1 MEDIUM</span></div>
+      </div>
+      <div class="remediation"><div class="rem-title">Recommended fix action</div><code class="rem-cmd">npm update inflight</code><button class="copy-btn" data-copy="npm update inflight">Copy command</button><a class="download-link" href="https://www.npmjs.com/package/inflight" target="_blank" rel="noopener noreferrer">Download update</a></div>
+      <div class="adv-list">
+            <div class="adv-row" data-sev="medium">
+              <div class="adv-top">
+                <div class="adv-id-group">
+                  <span class="pill medium" style="font-size:0.72rem">MEDIUM</span>
+                  <span class="adv-id">sonatype-2023-4801</span>
+                  
+                  <span class="cvss-badge">6.1</span>
+                  
+                </div>
+                <div class="adv-meta">
+                  <span class="epss-val dim">—</span>
+                  <span class="src-tag">sonatype</span>
+                  <span class="conf-tag conf-low">1 source</span>
+                  
+                </div>
+              </div>
+              <p class="adv-desc">inflight - Missing Release of Memory after Effective Lifetime / Memory Leak</p>
+              <div class="fix-box no-fix">No fix available</div>
+            </div></div>
+    </div>
+
+  <div class="footer">Supply Chain Scanner · 2026-05-13T06:17:42.632511+00:00</div>
+</div>
+<script>
+(function(){
+  const btns=document.querySelectorAll('.fbtn');
+  const cards=document.querySelectorAll('.comp-card');
+  const rows=document.querySelectorAll('.adv-row');
+  btns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      btns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const sev=btn.dataset.sev;
+      /* filter individual advisory rows */
+      rows.forEach(r=>{
+        if(sev==='all'){r.classList.remove('hidden');return}
+        r.classList.toggle('hidden',r.dataset.sev!==sev);
+      });
+      /* hide cards that have zero visible rows */
+      cards.forEach(card=>{
+        if(sev==='all'){card.classList.remove('hidden');return}
+        const visible=card.querySelectorAll('.adv-row:not(.hidden)');
+        card.classList.toggle('hidden',visible.length===0);
+      });
+    });
+  });
+})();
+document.querySelectorAll('.copy-btn').forEach((btn)=>{
+  btn.addEventListener('click', async () => {
+    const text = btn.getAttribute('data-copy') || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent='Copied';
+      setTimeout(()=>btn.textContent='Copy command',1200);
+    } catch (_e) {}
+  });
+});
+</script>
+</body>
+</html>

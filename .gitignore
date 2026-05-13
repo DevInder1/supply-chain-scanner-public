@@ -12,3 +12,9 @@ scanner/storage/vuln_cache.db
 scanner/report.json
 scanner/report.html
 scanner/vulnerabilities.html
+scanner/desktop-validation/
+
+# Desktop app artifacts
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/release/

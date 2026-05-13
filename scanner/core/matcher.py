@@ -217,7 +217,6 @@ def _strip_version_prefix(version_str: str) -> str:
 
 
 def evaluate_range_events(version: str, events: list[dict[str, str]]) -> bool:
-    introduced = None
     affected = False
 
     for event in events:
@@ -241,9 +240,6 @@ def evaluate_range_events(version: str, events: list[dict[str, str]]) -> bool:
 
     if affected:
         return True
-
-    if introduced and introduced not in {"0", "*"}:
-        return compare_versions(version, introduced) >= 0
     return False
 
 

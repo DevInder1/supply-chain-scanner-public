@@ -11,9 +11,10 @@ import json
 import os
 import html as _html
 import subprocess
-import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
+
+import requests
 
 
 def e(text: str) -> str:
@@ -26,18 +27,16 @@ def _query_osv_batch(extensions: list[dict]) -> list[dict]:
         {"package": {"name": ext["name"], "ecosystem": "npm"}, "version": ext["version"]}
         for ext in extensions
     ]
-    payload = json.dumps({"queries": queries}).encode()
-    req = urllib.request.Request(
-        "https://api.osv.dev/v1/querybatch",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        resp = urllib.request.urlopen(req, timeout=30)  # noqa: S310 – trusted URL
-        data = json.loads(resp.read())
+        resp = requests.post(
+            "https://api.osv.dev/v1/querybatch",
+            json={"queries": queries},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
         return data.get("results", [])
-    except Exception as exc:
+    except requests.RequestException as exc:
         print(f"  Warning: OSV.dev query failed: {exc}")
         return [{}] * len(extensions)
 
@@ -47,7 +46,10 @@ def _run_trivy_fs(scan_dir: str) -> list[dict]:
     try:
         proc = subprocess.run(
             ["trivy", "fs", "--scanners", "vuln", "--format", "json", scan_dir],
-            capture_output=True, timeout=180,
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=180,
         )
         data = json.loads(proc.stdout)
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
@@ -82,15 +84,15 @@ def _query_osv_for_deps(findings: list[dict]) -> dict:
     ]
     if not queries:
         return {"total": 0, "affected": 0, "cves": set(), "by_sev": {}}
-    payload = json.dumps({"queries": queries}).encode()
-    req = urllib.request.Request(
-        "https://api.osv.dev/v1/querybatch", data=payload,
-        headers={"Content-Type": "application/json"}, method="POST",
-    )
     try:
-        resp = urllib.request.urlopen(req, timeout=30)  # noqa: S310
-        results = json.loads(resp.read()).get("results", [])
-    except Exception:
+        resp = requests.post(
+            "https://api.osv.dev/v1/querybatch",
+            json={"queries": queries},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    except requests.RequestException:
         return {"total": 0, "affected": 0, "cves": set(), "by_sev": {}}
     total = 0
     affected = 0

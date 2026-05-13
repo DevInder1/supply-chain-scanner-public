@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 import platform
+import plistlib
+import re
 import shutil
 import subprocess
+from pathlib import Path
 
 from scanner.core.sbom import Component, build_component
 
@@ -62,22 +65,35 @@ BREW_OSV_ALIASES = {
     "xorgproto": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "xorgproto"},
     "watch": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "procps-ng"},
     "ghostty": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "ghostty"},
+    # Browsers
+    "google-chrome": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "chromium": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "firefox": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "firefox"},
+    "microsoft-edge": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "brave-browser": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
 }
 
 
 def scan_system_packages() -> list[Component]:
     system_name = platform.system()
+    components: list[Component] = []
 
     if system_name == "Darwin":
-        return _scan_homebrew()
-    if system_name == "Windows":
-        return _scan_windows()
-    if system_name == "Linux":
+        components.extend(_scan_homebrew())
+        components.extend(_scan_macos_applications())
+    elif system_name == "Windows":
+        components.extend(_scan_windows())
+    elif system_name == "Linux":
         if shutil.which("dpkg"):
-            return _scan_dpkg()
-        if shutil.which("rpm"):
-            return _scan_rpm()
-    return []
+            components.extend(_scan_dpkg())
+        elif shutil.which("rpm"):
+            components.extend(_scan_rpm())
+    components.extend(_scan_developer_toolchains())
+    deduped: dict[tuple[str, str, str], Component] = {}
+    for component in components:
+        key = (component.name.lower(), component.version, component.ecosystem)
+        deduped[key] = component
+    return list(deduped.values())
 
 
 def _scan_dpkg() -> list[Component]:
@@ -86,6 +102,8 @@ def _scan_dpkg() -> list[Component]:
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
+        timeout=120,
     )
     if result.returncode != 0:
         return []
@@ -110,12 +128,137 @@ def _scan_dpkg() -> list[Component]:
     return components
 
 
+MACOS_APP_ALIASES: dict[str, dict[str, str]] = {
+    "Google Chrome": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "Chromium": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "Firefox": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "firefox"},
+    "Microsoft Edge": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "Brave Browser": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "chromium"},
+    "Visual Studio Code": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "vscode"},
+    "Docker Desktop": {"osv_ecosystem": "OSS-Fuzz", "osv_name": "docker"},
+    "Postman": {"osv_ecosystem": "npm", "osv_name": "postman"},
+}
+
+
+def _scan_macos_applications() -> list[Component]:
+    app_roots = [Path("/Applications"), Path.home() / "Applications"]
+    components: list[Component] = []
+    for app_root in app_roots:
+        if not app_root.exists():
+            continue
+        for app_dir in app_root.glob("*.app"):
+            info_plist = app_dir / "Contents" / "Info.plist"
+            if not info_plist.exists():
+                continue
+            try:
+                with info_plist.open("rb") as fh:
+                    info = plistlib.load(fh)
+            except Exception:  # noqa: BLE001
+                continue
+            app_name = str(
+                info.get("CFBundleDisplayName")
+                or info.get("CFBundleName")
+                or app_dir.stem
+            ).strip()
+            app_version = str(
+                info.get("CFBundleShortVersionString")
+                or info.get("CFBundleVersion")
+                or "unknown"
+            ).strip()
+            metadata = {
+                "platform": "macos",
+                "package_manager": "app_bundle",
+            }
+            metadata.update(MACOS_APP_ALIASES.get(app_name, {}))
+            components.append(
+                build_component(
+                    name=app_name,
+                    version=app_version,
+                    ecosystem="os",
+                    component_type="application",
+                    source=str(app_dir),
+                    metadata=metadata,
+                )
+            )
+    return components
+
+
+_CLI_TOOL_PROBES: list[tuple[str, str, list[str], dict[str, str]]] = [
+    ("docker", "docker", ["docker", "--version"], {"osv_ecosystem": "OSS-Fuzz", "osv_name": "docker"}),
+    ("docker-compose", "docker-compose", ["docker-compose", "--version"], {"osv_ecosystem": "OSS-Fuzz", "osv_name": "docker"}),
+    ("kubectl", "kubernetes-cli", ["kubectl", "version", "--client", "--short"], {"osv_ecosystem": "Go", "osv_name": "k8s.io/kubernetes"}),
+    ("node", "nodejs", ["node", "--version"], {"osv_ecosystem": "npm", "osv_name": "node"}),
+    ("npm", "npm", ["npm", "--version"], {"osv_ecosystem": "npm", "osv_name": "npm"}),
+    ("yarn", "yarn", ["yarn", "--version"], {"osv_ecosystem": "npm", "osv_name": "yarn"}),
+    ("pnpm", "pnpm", ["pnpm", "--version"], {"osv_ecosystem": "npm", "osv_name": "pnpm"}),
+    ("python3", "python3", ["python3", "--version"], {"osv_ecosystem": "PyPI", "osv_name": "cpython"}),
+    ("pip3", "pip", ["pip3", "--version"], {"osv_ecosystem": "PyPI", "osv_name": "pip"}),
+    ("java", "openjdk", ["java", "-version"], {"osv_ecosystem": "Maven", "osv_name": "org.openjdk:openjdk"}),
+    ("mvn", "maven", ["mvn", "-version"], {"osv_ecosystem": "Maven", "osv_name": "org.apache.maven:maven-core"}),
+    ("gradle", "gradle", ["gradle", "--version"], {"osv_ecosystem": "Maven", "osv_name": "gradle"}),
+    ("go", "golang", ["go", "version"], {"osv_ecosystem": "Go", "osv_name": "golang.org/x/tools"}),
+    ("rustc", "rust", ["rustc", "--version"], {"osv_ecosystem": "crates.io", "osv_name": "rust"}),
+    ("cargo", "cargo", ["cargo", "--version"], {"osv_ecosystem": "crates.io", "osv_name": "cargo"}),
+    ("dotnet", "dotnet-sdk", ["dotnet", "--version"], {"osv_ecosystem": "NuGet", "osv_name": "Microsoft.NETCore.App.Runtime"}),
+    ("trivy", "trivy", ["trivy", "--version"], {"osv_ecosystem": "Go", "osv_name": "github.com/aquasecurity/trivy"}),
+]
+
+
+def _scan_developer_toolchains() -> list[Component]:
+    components: list[Component] = []
+    for binary, component_name, command, alias in _CLI_TOOL_PROBES:
+        if not shutil.which(binary):
+            continue
+        version = _probe_version(command)
+        if not version:
+            continue
+        metadata = {
+            "package_manager": "cli_probe",
+            "platform": platform.system().lower(),
+            "binary": binary,
+        }
+        metadata.update(alias)
+        components.append(
+            build_component(
+                name=component_name,
+                version=version,
+                ecosystem="os",
+                component_type="application",
+                source="cli_probe",
+                metadata=metadata,
+            )
+        )
+    return components
+
+
+def _probe_version(command: list[str]) -> str:
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=8,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    output = f"{result.stdout}\n{result.stderr}".strip()
+    if not output:
+        return ""
+    first_line = output.splitlines()[0]
+    match = re.search(r"\d+(?:\.\d+){1,3}(?:[-+._][A-Za-z0-9]+)?", first_line)
+    return match.group(0) if match else ""
+
+
 def _scan_rpm() -> list[Component]:
     result = subprocess.run(
         ["rpm", "-qa", "--qf", "%{NAME}\t%{VERSION}-%{RELEASE}\n"],
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
+        timeout=120,
     )
     if result.returncode != 0:
         return []
@@ -154,6 +297,8 @@ def _scan_homebrew_list(command: list[str], *, package_kind: str) -> list[Compon
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
+        timeout=120,
     )
     if result.returncode != 0:
         return []
@@ -244,6 +389,8 @@ def _scan_chocolatey() -> list[Component]:
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
+        timeout=120,
     )
     if result.returncode != 0:
         return []
@@ -287,6 +434,7 @@ def _scan_winget() -> list[Component]:
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
         timeout=60,
     )
     if result.returncode != 0:
@@ -364,6 +512,7 @@ def _scan_windows_registry() -> list[Component]:
         check=False,
         capture_output=True,
         text=True,
+        shell=False,
         timeout=60,
     )
     if result.returncode != 0 or not result.stdout.strip():

@@ -1,13 +1,143 @@
 from __future__ import annotations
 
 import logging
-import xml.etree.ElementTree as ET
+import re
 from pathlib import Path
 
+from defusedxml import ElementTree as ET
 from scanner.core.extractor import load_json
 from scanner.core.sbom import Component, build_component
 
 log = logging.getLogger(__name__)
+
+
+def _parse_requirements_txt(req_path: Path) -> list[Component]:
+    components: list[Component] = []
+    seen: set[tuple[str, str]] = set()
+    pattern = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*([<>=!~]{1,2})\s*([A-Za-z0-9_.+-]+)\s*$")
+    for raw in req_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or line.startswith("-"):
+            continue
+        match = pattern.match(line)
+        if not match:
+            continue
+        name, operator, version = match.group(1), match.group(2), match.group(3)
+        normalized_version = f"{operator}{version}"
+        if not name or not version:
+            continue
+        ident = (name.lower(), normalized_version)
+        if ident in seen:
+            continue
+        seen.add(ident)
+        components.append(
+            build_component(
+                name=name,
+                version=normalized_version,
+                ecosystem="PyPI",
+                component_type="project",
+                source=str(req_path),
+                metadata={"transitive": False, "specifier": operator},
+            )
+        )
+    return components
+
+
+def _parse_poetry_lock(lock_path: Path) -> list[Component]:
+    components: list[Component] = []
+    seen: set[tuple[str, str]] = set()
+    text = lock_path.read_text(encoding="utf-8", errors="replace")
+    name: str | None = None
+    version: str | None = None
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("name = "):
+            name = line.split("=", 1)[1].strip().strip('"')
+        elif line.startswith("version = "):
+            version = line.split("=", 1)[1].strip().strip('"')
+        elif line == "[[package]]":
+            name = None
+            version = None
+        if name and version:
+            ident = (name.lower(), version)
+            if ident not in seen:
+                seen.add(ident)
+                components.append(
+                    build_component(
+                        name=name,
+                        version=version,
+                        ecosystem="PyPI",
+                        component_type="project",
+                        source=str(lock_path),
+                        metadata={"transitive": True},
+                    )
+                )
+            name = None
+            version = None
+    return components
+
+
+def _parse_go_sum(go_sum_path: Path) -> list[Component]:
+    components: list[Component] = []
+    seen: set[tuple[str, str]] = set()
+    for raw in go_sum_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = raw.strip().split()
+        if len(parts) < 2:
+            continue
+        name = parts[0]
+        version = parts[1]
+        if version.endswith("/go.mod"):
+            version = version[:-7]
+        ident = (name.lower(), version)
+        if ident in seen:
+            continue
+        seen.add(ident)
+        components.append(
+            build_component(
+                name=name,
+                version=version,
+                ecosystem="Go",
+                component_type="project",
+                source=str(go_sum_path),
+                metadata={"transitive": True},
+            )
+        )
+    return components
+
+
+def _parse_cargo_lock(lock_path: Path) -> list[Component]:
+    components: list[Component] = []
+    seen: set[tuple[str, str]] = set()
+    text = lock_path.read_text(encoding="utf-8", errors="replace")
+    name: str | None = None
+    version: str | None = None
+    for line in text.splitlines():
+        line = line.strip()
+        if line == "[[package]]":
+            name = None
+            version = None
+            continue
+        if line.startswith("name = "):
+            name = line.split("=", 1)[1].strip().strip('"')
+        elif line.startswith("version = "):
+            version = line.split("=", 1)[1].strip().strip('"')
+        if name and version:
+            ident = (name.lower(), version)
+            if ident not in seen:
+                seen.add(ident)
+                components.append(
+                    build_component(
+                        name=name,
+                        version=version,
+                        ecosystem="crates.io",
+                        component_type="project",
+                        source=str(lock_path),
+                        metadata={"transitive": True},
+                    )
+                )
+            name = None
+            version = None
+    return components
 
 
 def _parse_package_lock(lock_path: Path) -> list[Component]:
@@ -354,7 +484,6 @@ def _parse_gradle_lockfile(lock_path: Path) -> list[Component]:
 
 def _parse_build_gradle(gradle_path: Path) -> list[Component]:
     """Best-effort extraction of dependencies from build.gradle / build.gradle.kts."""
-    import re
 
     components: list[Component] = []
     seen: set[tuple[str, str]] = set()
@@ -393,53 +522,69 @@ def _parse_build_gradle(gradle_path: Path) -> list[Component]:
 
 # ── Main entry point ─────────────────────────────────────────────────
 
-def scan_project_dependencies(project_path: str | None = None) -> list[Component]:
+def scan_project_dependencies(
+    project_path: str | None = None,
+    *,
+    exclude_dirs: list[str] | None = None,
+) -> list[Component]:
     root = Path(project_path or ".").resolve()
+    exclude_dirs = exclude_dirs or []
+    project_roots = _discover_project_roots(root, exclude_dirs=exclude_dirs)
     all_components: list[Component] = []
 
+    for project_root in project_roots:
+        all_components.extend(_scan_single_project_root(project_root))
+
+    if not all_components:
+        log.warning("No supported project manifest found in %s", root)
+
+    return all_components
+
+
+def _scan_single_project_root(root: Path) -> list[Component]:
+    all_components: list[Component] = []
     # ── npm ────────────────────────────────────────────────────────────
     package_json = root / "package.json"
-    if package_json.exists():
-        lock_file = root / "package-lock.json"
-        yarn_lock = root / "yarn.lock"
-        pnpm_lock = root / "pnpm-lock.yaml"
+    lock_file = root / "package-lock.json"
+    yarn_lock = root / "yarn.lock"
+    pnpm_lock = root / "pnpm-lock.yaml"
 
-        if lock_file.exists():
-            log.info("Parsing package-lock.json (%s) for resolved dependencies", lock_file)
-            comps = _parse_package_lock(lock_file)
-            if comps:
-                log.info("Found %d resolved packages from package-lock.json", len(comps))
-                all_components.extend(comps)
-        elif yarn_lock.exists():
-            log.info("Parsing yarn.lock (%s) for resolved dependencies", yarn_lock)
-            comps = _parse_yarn_lock(yarn_lock)
-            if comps:
-                log.info("Found %d resolved packages from yarn.lock", len(comps))
-                all_components.extend(comps)
-        elif pnpm_lock.exists():
-            log.info("Parsing pnpm-lock.yaml (%s) for resolved dependencies", pnpm_lock)
-            comps = _parse_pnpm_lock(pnpm_lock)
-            if comps:
-                log.info("Found %d resolved packages from pnpm-lock.yaml", len(comps))
-                all_components.extend(comps)
-        else:
-            log.info("No lockfile found, falling back to package.json direct dependencies")
-            package_data = load_json(package_json)
-            for section_name in ("dependencies", "devDependencies"):
-                section = package_data.get(section_name, {})
-                if not isinstance(section, dict):
-                    continue
-                for dependency_name, dependency_version in section.items():
-                    all_components.append(
-                        build_component(
-                            name=dependency_name,
-                            version=str(dependency_version),
-                            ecosystem="npm",
-                            component_type="project",
-                            source=str(package_json),
-                            metadata={"scope": section_name},
-                        )
+    if lock_file.exists():
+        log.info("Parsing package-lock.json (%s) for resolved dependencies", lock_file)
+        comps = _parse_package_lock(lock_file)
+        if comps:
+            log.info("Found %d resolved packages from package-lock.json", len(comps))
+            all_components.extend(comps)
+    elif yarn_lock.exists():
+        log.info("Parsing yarn.lock (%s) for resolved dependencies", yarn_lock)
+        comps = _parse_yarn_lock(yarn_lock)
+        if comps:
+            log.info("Found %d resolved packages from yarn.lock", len(comps))
+            all_components.extend(comps)
+    elif pnpm_lock.exists():
+        log.info("Parsing pnpm-lock.yaml (%s) for resolved dependencies", pnpm_lock)
+        comps = _parse_pnpm_lock(pnpm_lock)
+        if comps:
+            log.info("Found %d resolved packages from pnpm-lock.yaml", len(comps))
+            all_components.extend(comps)
+    elif package_json.exists():
+        log.info("No lockfile found, falling back to package.json direct dependencies")
+        package_data = load_json(package_json)
+        for section_name in ("dependencies", "devDependencies"):
+            section = package_data.get(section_name, {})
+            if not isinstance(section, dict):
+                continue
+            for dependency_name, dependency_version in section.items():
+                all_components.append(
+                    build_component(
+                        name=dependency_name,
+                        version=str(dependency_version),
+                        ecosystem="npm",
+                        component_type="project",
+                        source=str(package_json),
+                        metadata={"scope": section_name},
                     )
+                )
 
     # ── .NET / NuGet ──────────────────────────────────────────────────
     nuget_lock = root / "packages.lock.json"
@@ -498,7 +643,90 @@ def scan_project_dependencies(project_path: str | None = None) -> list[Component
             log.info("Found %d packages from build.gradle.kts", len(comps))
             all_components.extend(comps)
 
-    if not all_components:
-        log.warning("No supported project manifest found in %s", root)
+    # ── Python / Go / Rust ────────────────────────────────────────────
+    requirements_txt = root / "requirements.txt"
+    poetry_lock = root / "poetry.lock"
+    go_sum = root / "go.sum"
+    cargo_lock = root / "Cargo.lock"
 
+    if poetry_lock.exists():
+        log.info("Parsing poetry.lock (%s)", poetry_lock)
+        comps = _parse_poetry_lock(poetry_lock)
+        if comps:
+            log.info("Found %d Python packages from poetry.lock", len(comps))
+            all_components.extend(comps)
+    elif requirements_txt.exists():
+        log.info("Parsing requirements.txt (%s)", requirements_txt)
+        comps = _parse_requirements_txt(requirements_txt)
+        if comps:
+            log.info("Found %d Python packages from requirements.txt", len(comps))
+            all_components.extend(comps)
+
+    if go_sum.exists():
+        log.info("Parsing go.sum (%s)", go_sum)
+        comps = _parse_go_sum(go_sum)
+        if comps:
+            log.info("Found %d Go modules from go.sum", len(comps))
+            all_components.extend(comps)
+
+    if cargo_lock.exists():
+        log.info("Parsing Cargo.lock (%s)", cargo_lock)
+        comps = _parse_cargo_lock(cargo_lock)
+        if comps:
+            log.info("Found %d Rust crates from Cargo.lock", len(comps))
+            all_components.extend(comps)
     return all_components
+
+
+def _discover_project_roots(root: Path, *, exclude_dirs: list[str]) -> list[Path]:
+    markers = {
+        "package.json",
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "packages.lock.json",
+        "packages.config",
+        "requirements.txt",
+        "poetry.lock",
+        "go.sum",
+        "Cargo.lock",
+    }
+    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__", ".idea", ".cursor"}
+    normalized_excludes = {item.strip("/").strip() for item in exclude_dirs if item and item.strip()}
+    roots: set[Path] = set()
+
+    if any((root / marker).exists() for marker in markers):
+        roots.add(root)
+
+    def is_excluded(path: Path) -> bool:
+        if any(part in skip_dirs for part in path.parts):
+            return True
+        if not normalized_excludes:
+            return False
+        try:
+            rel_path = path.relative_to(root)
+        except ValueError:
+            return True
+        rel_text = rel_path.as_posix()
+        return any(
+            rel_text == excluded
+            or rel_text.startswith(f"{excluded}/")
+            or excluded in rel_path.parts
+            for excluded in normalized_excludes
+        )
+
+    for marker in markers:
+        for marker_path in root.rglob(marker):
+            if marker_path.is_symlink():
+                continue
+            parent = marker_path.parent
+            if is_excluded(parent):
+                continue
+            roots.add(parent)
+    discovered = sorted(roots)
+    if discovered:
+        log.info("Discovered %d project manifest root(s) under %s", len(discovered), root)
+    return discovered or [root]

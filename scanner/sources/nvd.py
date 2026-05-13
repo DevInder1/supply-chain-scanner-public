@@ -123,6 +123,7 @@ def sync_nvd_advisories(
     api_key: str | None = None,
     base_url: str = NVD_CVE_URL,
     timeout: int = 30,
+    max_requests_without_key: int = 10,
 ) -> None:
     """Query NVD for CVEs matching each component's CPE."""
     if offline:
@@ -155,6 +156,14 @@ def sync_nvd_advisories(
     delay = 0.7 if api_key else 6.5
     if not api_key:
         logger.info("NVD: no API key — using slow rate limit (%.1fs/req). Set NVD_API_KEY in .env for 10x faster scans.", delay)
+        if len(uncached) > max_requests_without_key:
+            logger.info(
+                "NVD: limiting uncached lookups from %d to %d (no API key).",
+                len(uncached),
+                max_requests_without_key,
+            )
+            limited_items = list(uncached.items())[:max_requests_without_key]
+            uncached = dict(limited_items)
 
     for cpe, pkg_name in uncached.items():
         try:

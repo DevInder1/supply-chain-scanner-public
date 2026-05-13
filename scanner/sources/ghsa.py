@@ -6,6 +6,7 @@ returning curated severity, CVSS scores, and fix versions.
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict
 from typing import Any
 
@@ -80,11 +81,16 @@ def sync_ghsa_advisories(
     github_token: str | None = None,
     base_url: str = GHSA_GRAPHQL_URL,
     timeout: int = 30,
+    max_retries: int = 3,
 ) -> None:
     """Query GHSA for security vulnerabilities for each queryable component."""
     if offline or not github_token:
         if not github_token:
             logger.info("GHSA: skipping (no GITHUB_TOKEN configured)")
+        return
+    github_token = _normalize_github_token(github_token)
+    if not github_token:
+        logger.info("GHSA: skipping (GITHUB_TOKEN is empty after normalization)")
         return
 
     # Deduplicate by (ecosystem, package_name)
@@ -106,6 +112,10 @@ def sync_ghsa_advisories(
         "Content-Type": "application/json",
     }
 
+    if not _check_ghsa_auth(headers, base_url=base_url, timeout=timeout):
+        logger.warning("GHSA: authentication failed (401). Verify local GITHUB_TOKEN value and permissions.")
+        return
+
     for (ghsa_eco, pkg_name), component in grouped.items():
         try:
             variables = {
@@ -113,11 +123,12 @@ def sync_ghsa_advisories(
                 "package": pkg_name,
                 "first": 100,
             }
-            response = requests.post(
-                base_url,
-                json={"query": _QUERY, "variables": variables},
+            response = _post_with_retry(
+                base_url=base_url,
+                payload={"query": _QUERY, "variables": variables},
                 headers=headers,
                 timeout=timeout,
+                max_retries=max_retries,
             )
             response.raise_for_status()
             payload = response.json()
@@ -181,3 +192,59 @@ def sync_ghsa_advisories(
 
         except requests.RequestException as exc:
             logger.warning("GHSA query failed for %s/%s: %s", ghsa_eco, pkg_name, exc)
+
+
+def _normalize_github_token(token: str) -> str:
+    value = token.strip().strip("\"'")
+    lowered = value.lower()
+    if lowered.startswith("bearer "):
+        return value[7:].strip()
+    if lowered.startswith("token "):
+        return value[6:].strip()
+    return value
+
+
+def _check_ghsa_auth(headers: dict[str, str], *, base_url: str, timeout: int) -> bool:
+    """Fast preflight to avoid per-package 401 spam."""
+    try:
+        response = requests.post(
+            base_url,
+            json={"query": "query { viewer { login } }"},
+            headers=headers,
+            timeout=timeout,
+        )
+        if response.status_code == 401:
+            return False
+        response.raise_for_status()
+        payload = response.json()
+        return "errors" not in payload
+    except requests.RequestException:
+        return False
+
+
+def _post_with_retry(
+    *,
+    base_url: str,
+    payload: dict[str, Any],
+    headers: dict[str, str],
+    timeout: int,
+    max_retries: int,
+) -> requests.Response:
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            response = requests.post(
+                base_url,
+                json=payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            if response.status_code in {502, 503, 504} and attempt <= max_retries:
+                time.sleep(min(2 ** (attempt - 1), 8))
+                continue
+            return response
+        except requests.Timeout:
+            if attempt > max_retries:
+                raise
+            time.sleep(min(2 ** (attempt - 1), 8))

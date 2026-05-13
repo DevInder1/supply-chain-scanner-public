@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -158,6 +159,33 @@ class VulnerabilityDatabase:
             self.connection.execute(
                 "INSERT OR REPLACE INTO metadata (key, value) VALUES ('kev_catalog_loaded', 'true')"
             )
+
+    def get_metadata(self, key: str) -> str | None:
+        cursor = self.connection.execute("SELECT value FROM metadata WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return str(row["value"])
+
+    def set_metadata(self, key: str, value: str) -> None:
+        with self.connection:
+            self.connection.execute(
+                "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+                (key, value),
+            )
+
+    def get_last_sync_time(self, source_name: str) -> datetime | None:
+        value = self.get_metadata(f"sync_last_{source_name}")
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def set_last_sync_time(self, source_name: str, when: datetime | None = None) -> None:
+        timestamp = when or datetime.now(timezone.utc)
+        self.set_metadata(f"sync_last_{source_name}", timestamp.isoformat())
 
     # ----- NVD -----
 

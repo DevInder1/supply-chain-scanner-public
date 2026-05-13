@@ -7,9 +7,11 @@
     },
   "sources": {
       "osv_base_url": "https://api.osv.dev/v1/querybatch",
+      "osv_max_hydrate_requests": 50,
       "epss_base_url": "https://api.first.org/data/v1/epss",
       "kev_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
       "nvd_base_url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+      "nvd_max_requests_without_key": 10,
       "ghsa_base_url": "https://api.github.com/graphql",
       "ossindex_base_url": "https://ossindex.sonatype.org/api/v3/component-report",
       "sonatype_base_url": "https://api.guide.sonatype.com",
@@ -20,6 +22,7 @@
   "scanners":
     {
       "vscode_path": "~/.vscode/extensions",
+      "project_exclude_dirs": [],
       "jetbrains_paths":
         ["~/.local/share/JetBrains", "~/Library/Application Support/JetBrains"],
     },

@@ -1,0 +1,49 @@
+{
+  "name": "supply-chain-scanner-desktop",
+  "version": "0.1.0",
+  "description": "Electron shell for local supply-chain scanner",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "bundle:runtime:mac": "python3 ../../packaging/scripts/bundle_scanner_runtime.py --target macos",
+    "bundle:runtime:linux": "python3 ../../packaging/scripts/bundle_scanner_runtime.py --target linux",
+    "bundle:runtime:win": "python3 ../../packaging/scripts/bundle_scanner_runtime.py --target windows"
+  },
+  "devDependencies": {
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.0"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.9.10"
+  },
+  "build": {
+    "appId": "com.scanner.desktop",
+    "productName": "Supply Chain Scanner",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../packaging/runtime",
+        "to": "runtime"
+      },
+      {
+        "from": "../../scanner",
+        "to": "scanner"
+      }
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

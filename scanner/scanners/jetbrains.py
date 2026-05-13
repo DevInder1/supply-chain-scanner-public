@@ -4,7 +4,7 @@ import os
 import re
 from pathlib import Path
 from zipfile import BadZipFile, ZipFile
-from xml.etree import ElementTree
+from defusedxml import ElementTree
 
 from scanner.core.sbom import Component, build_component
 

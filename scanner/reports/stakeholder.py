@@ -12,6 +12,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
+
 
 def e(t: str) -> str:
     return _html.escape(str(t))
@@ -22,7 +24,10 @@ def _run_trivy_fs(scan_dir: str) -> list[dict]:
     try:
         proc = subprocess.run(
             ["trivy", "fs", "--scanners", "vuln", "--format", "json", scan_dir],
-            capture_output=True, timeout=180,
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=180,
         )
         data = json.loads(proc.stdout)
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
@@ -40,18 +45,19 @@ def _run_trivy_fs(scan_dir: str) -> list[dict]:
 
 def _query_osv_batch(packages: list[dict]) -> int:
     """Query OSV.dev for a list of {name, version, ecosystem} dicts. Return advisory count."""
-    import urllib.request as _ur
     queries = [{"package": {"name": p["name"], "ecosystem": p["ecosystem"]}, "version": p["version"]} for p in packages]
     if not queries:
         return 0
-    payload = json.dumps({"queries": queries}).encode()
-    req = _ur.Request("https://api.osv.dev/v1/querybatch", data=payload,
-                      headers={"Content-Type": "application/json"}, method="POST")
     try:
-        resp = _ur.urlopen(req, timeout=30)  # noqa: S310
-        results = json.loads(resp.read()).get("results", [])
+        resp = requests.post(
+            "https://api.osv.dev/v1/querybatch",
+            json={"queries": queries},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
         return sum(len(r.get("vulns", [])) for r in results)
-    except Exception:
+    except requests.RequestException:
         return 0
 
 

@@ -3,13 +3,19 @@ from __future__ import annotations
 import json
 from collections import Counter
 from datetime import datetime, timezone
+from functools import cmp_to_key
 from html import escape
 from pathlib import Path
 from typing import Any
 
 from scanner.core.matcher import summarize_findings
+from scanner.core.matcher import compare_versions
 from scanner.core.sbom import Component, export_sbom
 from scanner.sources.osv import map_osv_ecosystem, map_osv_package_name, supports_osv_query
+
+
+def _is_prerelease_version(version: str) -> bool:
+    return "-" in version
 
 
 def build_report(
@@ -304,6 +310,7 @@ def write_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
     coverage = report.get("scan_coverage", {})
     advisory_coverage = report.get("advisory_coverage", {})
     intel = report.get("intelligence_sources", {})
+    source_coverage = report.get("source_coverage", {})
     notes = report.get("notes", [])
     generated_at = escape(report.get("generated_at", ""))
     components_scanned = report.get("components_scanned", 0)
@@ -332,10 +339,51 @@ def write_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
     pct_m = round(medium / bar_total * 100, 1)
     pct_l = round(low / bar_total * 100, 1)
 
+    def _domain_for_component(component: dict[str, Any]) -> str:
+        ctype = str(component.get("type", "")).lower()
+        eco = str(component.get("ecosystem", "")).lower()
+        if ctype == "project":
+            return "project"
+        if eco in {"vscode", "jetbrains"}:
+            return "extensions"
+        return "system"
+
+    domain_counts_all: Counter[str] = Counter()
+    for group in findings:
+        domain_counts_all[_domain_for_component(group.get("component", {}))] += len(group.get("advisories", []))
+
+    def _severity_compact(summary_map: dict[str, Any]) -> str:
+        return (
+            f"C{summary_map.get('critical', 0)} / "
+            f"H{summary_map.get('high', 0)} / "
+            f"M{summary_map.get('medium', 0)} / "
+            f"L{summary_map.get('low', 0)}"
+        )
+
+    def _best_fix_version(advisories: list[dict[str, Any]], current_version: str = "") -> str:
+        versions: list[str] = []
+        for advisory in advisories:
+            versions.extend([str(v) for v in advisory.get("fix_versions", []) if v])
+        if not versions:
+            return "N/A"
+        unique_versions = list(dict.fromkeys(versions))
+        if not current_version:
+            stable_versions = [v for v in unique_versions if not _is_prerelease_version(v)]
+            if stable_versions:
+                return sorted(stable_versions, key=cmp_to_key(compare_versions))[-1]
+            return "N/A"
+        newer_candidates = [v for v in unique_versions if compare_versions(v, current_version) > 0]
+        if newer_candidates:
+            stable_newer = [v for v in newer_candidates if not _is_prerelease_version(v)]
+            if stable_newer:
+                return sorted(stable_newer, key=cmp_to_key(compare_versions))[0]
+        return "N/A"
+
     # Build top-risk components table
     top_risk_rows = []
-    for group in findings[:15]:
+    for group in findings:
         c = group.get("component", {})
+        domain = _domain_for_component(c)
         s = group.get("severity_summary", {})
         advs = group.get("advisories", [])
         max_cvss = max((a.get("cvss_score") or 0 for a in advs), default=0)
@@ -351,21 +399,42 @@ def write_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
             row_cls = "row-medium"
         else:
             row_cls = ""
-        sev_pills = ""
-        for lv, cnt in [("critical", s.get("critical", 0)), ("high", s.get("high", 0)),
-                         ("medium", s.get("medium", 0)), ("low", s.get("low", 0))]:
-            if cnt:
-                sev_pills += f'<span class="pill {lv}">{cnt}</span>'
+        sev_text = _severity_compact(s)
+        fix_version = _best_fix_version(advs, str(c.get("version", "")))
         top_risk_rows.append(
-            f'<tr class="{row_cls}">'
+            f'<tr class="{row_cls}" data-domain="{domain}" data-has-critical="{1 if s.get("critical", 0) else 0}">'
             f'<td class="comp-name">{escape(c.get("name", ""))}</td>'
             f'<td><code>{escape(c.get("version", ""))}</code></td>'
+            f'<td>{escape(domain.title())}</td>'
             f'<td>{vuln_count}</td>'
-            f'<td>{sev_pills}</td>'
+            f'<td>{escape(sev_text)}</td>'
             f'<td>{max_cvss:.1f}</td>'
             f'<td>{"🔴 " + str(kev_count) if kev_count else "—"}</td>'
             f'<td>{max_epss:.1%}</td>'
+            f'<td><code>{escape(fix_version)}</code></td>'
             f'</tr>'
+        )
+
+    project_rows = []
+    for group in findings:
+        c = group.get("component", {})
+        if _domain_for_component(c) != "project":
+            continue
+        advisories = group.get("advisories", [])
+        if not advisories:
+            continue
+        sev = group.get("severity_summary", {})
+        project_rows.append(
+            f"<tr data-has-critical='{1 if sev.get('critical', 0) else 0}'>"
+            f"<td class='comp-name'>{escape(c.get('name', ''))}</td>"
+            f"<td><code>{escape(c.get('version', ''))}</code></td>"
+            f"<td>{len(advisories)}</td>"
+            f"<td>{sev.get('critical', 0)}</td>"
+            f"<td>{sev.get('high', 0)}</td>"
+            f"<td>{sev.get('medium', 0)}</td>"
+            f"<td>{sev.get('low', 0)}</td>"
+            f"<td><code>{escape(_best_fix_version(advisories, str(c.get('version', ''))))}</code></td>"
+            f"</tr>"
         )
 
     # Build source contribution data
@@ -378,6 +447,15 @@ def write_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
             f'<div class="source-bar-track"><div class="source-bar-fill" style="width:{pct}%"></div></div>'
             f'<span class="source-count">{count}</span>'
             f'</div>'
+        )
+    source_status_items = ""
+    for src in ("osv", "nvd", "ghsa", "sonatype"):
+        info = source_coverage.get(src, {})
+        state = escape(str(info.get("status", "unknown")).upper())
+        reason = escape(str(info.get("reason", "")))
+        source_status_items += (
+            f"<li><strong>{src.upper()}</strong>: {state}"
+            f"{' - ' + reason if reason else ''}</li>"
         )
 
     # Confidence breakdown
@@ -506,6 +584,11 @@ code{{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius
 .eco-chips{{display:flex;flex-wrap:wrap;gap:8px}}
 .eco-chip{{background:var(--surface2);padding:6px 14px;border-radius:99px;font-size:0.82rem;color:var(--muted)}}
 .eco-chip strong{{color:var(--text);margin-right:4px}}
+.domain-tabs{{display:flex;gap:8px;margin:10px 0 12px;flex-wrap:wrap}}
+.domain-tab{{background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  padding:6px 12px;border-radius:999px;font-size:0.78rem;cursor:pointer}}
+.domain-tab.active{{color:var(--text);border-color:var(--blue)}}
+.toggle-critical{{margin-top:8px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.8rem}}
 
 /* Notes */
 .notes ul{{padding-left:20px;color:var(--muted);font-size:0.85rem}}
@@ -583,6 +666,7 @@ code{{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius
     <div class="card">
       <h2>Intelligence Sources</h2>
       {source_items}
+      <ul style="margin-top:10px;padding-left:18px;color:var(--muted);font-size:0.78rem">{source_status_items}</ul>
       <div class="conf-row">
         <span class="conf-chip conf-high">✓ {conf_high} high</span>
         <span class="conf-chip conf-med">~ {conf_med} medium</span>
@@ -594,14 +678,41 @@ code{{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius
   <!-- Top Risk Components -->
   <div class="card" style="margin-top:20px">
     <h2>🔥 Top Risk Components</h2>
+    <div class="domain-tabs">
+      <button class="domain-tab active" data-domain="all">All ({sum(domain_counts_all.values())})</button>
+      <button class="domain-tab" data-domain="project">Project ({domain_counts_all.get("project", 0)})</button>
+      <button class="domain-tab" data-domain="system">System ({domain_counts_all.get("system", 0)})</button>
+      <button class="domain-tab" data-domain="extensions">Extensions ({domain_counts_all.get("extensions", 0)})</button>
+    </div>
+    <label class="toggle-critical">
+      <input id="criticalOnlyToggle" type="checkbox" />
+      Show critical-only rows
+    </label>
     <table>
       <thead>
         <tr>
-          <th>Component</th><th>Version</th><th>Vulns</th><th>Severity</th>
-          <th>Max CVSS</th><th>KEV</th><th>Max EPSS</th>
+          <th>Component</th><th>Version</th><th>Domain</th><th>Vulns</th><th>Severity</th>
+          <th>Max CVSS</th><th>KEV</th><th>Max EPSS</th><th>Fix Version</th>
         </tr>
       </thead>
       <tbody>{''.join(top_risk_rows)}</tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h2>📦 Project Vulnerabilities</h2>
+    <label class="toggle-critical">
+      <input id="projectCriticalOnlyToggle" type="checkbox" />
+      Show critical-only project packages
+    </label>
+    <table>
+      <thead>
+        <tr>
+          <th>Package</th><th>Version</th><th>Total</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th>
+          <th>Fix Version</th>
+        </tr>
+      </thead>
+      <tbody>{''.join(project_rows) or "<tr><td colspan='8'>No project vulnerabilities found for selected path.</td></tr>"}</tbody>
     </table>
   </div>
 
@@ -621,6 +732,48 @@ code{{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius
     Supply Chain Scanner · Local-first vulnerability intelligence · {escape(generated_at)}
   </div>
 </div>
+<script>
+(function(){{
+  const tabs=document.querySelectorAll('.domain-tab');
+  const rows=document.querySelectorAll('tbody tr[data-domain]');
+  const criticalOnlyToggle=document.getElementById('criticalOnlyToggle');
+  const projectCriticalOnlyToggle=document.getElementById('projectCriticalOnlyToggle');
+  const projectRows=document.querySelectorAll("div.card table tbody tr[data-has-critical]");
+  let criticalOnly=false;
+  function applyDomainAndCritical(){{
+    const active=document.querySelector('.domain-tab.active');
+    const domain=active?active.dataset.domain:'all';
+    rows.forEach(row=>{{
+      const domainMatch=domain==='all'||row.dataset.domain===domain;
+      const criticalMatch=!criticalOnly||row.dataset.hasCritical==='1';
+      row.style.display=(domainMatch&&criticalMatch)?'table-row':'none';
+    }});
+  }}
+  tabs.forEach(tab=>{{
+    tab.addEventListener('click',()=>{{
+      tabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      applyDomainAndCritical();
+    }});
+  }});
+  if(criticalOnlyToggle){{
+    criticalOnlyToggle.addEventListener('change',()=>{{
+      criticalOnly=criticalOnlyToggle.checked;
+      applyDomainAndCritical();
+    }});
+  }}
+  if(projectCriticalOnlyToggle){{
+    projectCriticalOnlyToggle.addEventListener('change',()=>{{
+      const enabled=projectCriticalOnlyToggle.checked;
+      projectRows.forEach(row=>{{
+        const keep=!enabled||row.dataset.hasCritical==='1';
+        row.style.display=keep?'table-row':'none';
+      }});
+    }});
+  }}
+  applyDomainAndCritical();
+}})();
+</script>
 </body>
 </html>""".strip()
 
@@ -641,6 +794,70 @@ def _source_badges_html(advisory: dict[str, Any]) -> str:
     conf_class = {"high": "confidence-high", "medium": "confidence-medium"}.get(confidence, "confidence-low")
     conf_label = f'{len(sources)} source{"s" if len(sources) != 1 else ""}'
     return f'{src_html} <span class="badge-confidence {conf_class}">{escape(conf_label)}</span>'
+
+
+def _component_remediation(component: dict[str, Any], advisories: list[dict[str, Any]]) -> tuple[str, str | None]:
+    ecosystem = str(component.get("ecosystem", "")).lower()
+    name = str(component.get("name", ""))
+    metadata = component.get("metadata", {}) or {}
+    fix_versions = list({str(v) for adv in advisories for v in adv.get("fix_versions", []) if v})
+    current_version = str(component.get("version", ""))
+    newer_fixes = [v for v in fix_versions if current_version and compare_versions(v, current_version) > 0]
+    if newer_fixes:
+        stable_newer = [v for v in newer_fixes if not _is_prerelease_version(v)]
+        if stable_newer:
+            target_fix = sorted(stable_newer, key=cmp_to_key(compare_versions))[0]
+        else:
+            target_fix = ""
+    else:
+        target_fix = ""
+    source = str(component.get("source", "")).lower()
+    package_manager = str(metadata.get("package_manager", "")).lower()
+
+    if ecosystem in {"npm", "vscode"}:
+        if target_fix:
+            return f"npm install {name}@{target_fix}", f"https://www.npmjs.com/package/{name}"
+        return f"npm update {name}", f"https://www.npmjs.com/package/{name}"
+    if ecosystem == "nuget":
+        if target_fix:
+            return f"dotnet add package {name} --version {target_fix}", f"https://www.nuget.org/packages/{name}"
+        return f"dotnet list package --outdated | grep {name}", f"https://www.nuget.org/packages/{name}"
+    if ecosystem == "maven":
+        if target_fix:
+            return f"mvn versions:use-dep-version -Dincludes={name} -DdepVersion={target_fix}", None
+        return f"mvn versions:display-dependency-updates | grep {name}", None
+    if ecosystem == "os":
+        if package_manager == "brew" or source == "brew":
+            pkg_kind = str(metadata.get("package_kind", "")).lower()
+            if pkg_kind == "cask":
+                return f"brew upgrade --cask {name}", "https://formulae.brew.sh/cask/"
+            return f"brew upgrade {name}", f"https://formulae.brew.sh/formula/{name}"
+        if package_manager == "winget" or source == "winget":
+            pkg_id = str(metadata.get("package_id", "")).strip()
+            if pkg_id:
+                return f"winget upgrade --id {pkg_id}", "https://winget.run/"
+            return f"winget upgrade {name}", "https://winget.run/"
+        if package_manager == "chocolatey" or source == "chocolatey":
+            return f"choco upgrade {name} -y", f"https://community.chocolatey.org/packages/{name}"
+        if package_manager == "app_bundle":
+            return f"Open vendor updater for {name}", _app_download_link(name)
+    if ecosystem == "jetbrains":
+        return f"Update from JetBrains Toolbox / IDE Plugin Manager for {name}", "https://www.jetbrains.com/toolbox-app/"
+    return "Review vendor advisory and update to latest secure version", None
+
+
+def _app_download_link(name: str) -> str | None:
+    mapping = {
+        "Google Chrome": "https://www.google.com/chrome/",
+        "Chromium": "https://www.chromium.org/getting-involved/download-chromium/",
+        "Firefox": "https://www.mozilla.org/firefox/new/",
+        "Microsoft Edge": "https://www.microsoft.com/edge/download",
+        "Brave Browser": "https://brave.com/download/",
+        "Visual Studio Code": "https://code.visualstudio.com/Download",
+        "Docker Desktop": "https://www.docker.com/products/docker-desktop/",
+        "Postman": "https://www.postman.com/downloads/",
+    }
+    return mapping.get(name)
 
 
 def write_vuln_fixes_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
@@ -703,6 +920,18 @@ def write_vuln_fixes_html_report(report: dict[str, Any], output_path: str | Path
         comp_name = escape(component.get("name", ""))
         comp_ver = escape(component.get("version", ""))
         comp_eco = escape(component.get("ecosystem", ""))
+        remediation_cmd, remediation_link = _component_remediation(component, advisories)
+        link_html = ""
+        if remediation_link:
+            safe_link = escape(remediation_link)
+            link_html = f'<a class="download-link" href="{safe_link}" target="_blank" rel="noopener noreferrer">Download update</a>'
+        remediation_html = (
+            f'<div class="remediation"><div class="rem-title">Recommended fix action</div>'
+            f'<code class="rem-cmd">{escape(remediation_cmd)}</code>'
+            f'<button class="copy-btn" data-copy="{escape(remediation_cmd)}">Copy command</button>'
+            f"{link_html}"
+            f"</div>"
+        )
 
         if sev_summary.get("critical"):
             card_accent = "var(--critical)"
@@ -797,6 +1026,7 @@ def write_vuln_fixes_html_report(report: dict[str, Any], output_path: str | Path
         </div>
         <div class="comp-pills">{sev_pills}</div>
       </div>
+      {remediation_html}
       <div class="adv-list">{''.join(adv_items)}</div>
     </div>""")
 
@@ -929,6 +1159,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .fix-box code{{background:rgba(34,197,94,0.15);color:var(--green);padding:2px 8px;
   border-radius:4px;font-size:0.8rem;margin-right:6px}}
 .fix-box.no-fix{{color:var(--muted);background:var(--surface2);border-color:var(--border)}}
+.remediation{{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}}
+.rem-title{{font-size:0.75rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}}
+.rem-cmd{{display:block;padding:6px 8px;border-radius:6px;background:#111827;color:#a7f3d0;font-size:0.8rem;white-space:pre-wrap}}
+.copy-btn,.download-link{{margin-top:8px;display:inline-block;font-size:0.76rem;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none;cursor:pointer}}
+.download-link{{margin-left:8px}}
 
 .footer{{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;padding:16px}}
 </style>
@@ -1000,6 +1235,161 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         const visible=card.querySelectorAll('.adv-row:not(.hidden)');
         card.classList.toggle('hidden',visible.length===0);
       }});
+    }});
+  }});
+}})();
+document.querySelectorAll('.copy-btn').forEach((btn)=>{{
+  btn.addEventListener('click', async () => {{
+    const text = btn.getAttribute('data-copy') || '';
+    try {{
+      await navigator.clipboard.writeText(text);
+      btn.textContent='Copied';
+      setTimeout(()=>btn.textContent='Copy command',1200);
+    }} catch (_e) {{}}
+  }});
+}});
+</script>
+</body>
+</html>""".strip()
+
+    path.write_text(html, encoding="utf-8")
+    return path
+
+
+def write_epss_remediation_html_report(report: dict[str, Any], output_path: str | Path) -> Path:
+    """Write a ranked remediation report prioritizing exploitability."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    vuln_groups = report.get("vulnerabilities", [])
+    generated_at = escape(report.get("generated_at", ""))
+
+    rows: list[dict[str, Any]] = []
+    for group in vuln_groups:
+        component = group.get("component", {})
+        advisories = group.get("advisories", [])
+        command, download = _component_remediation(component, advisories)
+        for advisory in advisories:
+            final_risk = str(advisory.get("final_risk", "UNKNOWN")).upper()
+            epss = float(advisory.get("epss") or 0.0)
+            kev = bool(advisory.get("kev"))
+            cvss = float(advisory.get("cvss_score") or 0.0)
+            priority_score = (
+                (1000 if kev else 0)
+                + (100 if final_risk == "CRITICAL" else 0)
+                + (60 if final_risk == "HIGH" else 0)
+                + (25 if final_risk == "MEDIUM" else 0)
+                + int(epss * 1000)
+                + int(cvss * 10)
+            )
+            if kev or epss >= 0.2 or final_risk == "CRITICAL":
+                bucket = "Immediate"
+            elif epss >= 0.05 or final_risk == "HIGH":
+                bucket = "72h"
+            elif final_risk == "MEDIUM":
+                bucket = "7d"
+            else:
+                bucket = "Backlog"
+            rows.append(
+                {
+                    "component": component,
+                    "advisory": advisory,
+                    "epss": epss,
+                    "kev": kev,
+                    "cvss": cvss,
+                    "bucket": bucket,
+                    "priority_score": priority_score,
+                    "command": command,
+                    "download": download or "",
+                }
+            )
+
+    rows.sort(key=lambda item: (-item["priority_score"], -item["epss"], -item["cvss"]))
+    table_rows: list[str] = []
+    for item in rows:
+        component = item["component"]
+        advisory = item["advisory"]
+        severity = str(advisory.get("final_risk", "UNKNOWN")).lower()
+        download = item["download"]
+        download_html = (
+            f'<a href="{escape(download)}" target="_blank" rel="noopener noreferrer">Download</a>'
+            if download
+            else "—"
+        )
+        table_rows.append(
+            f"<tr data-priority='{escape(item['bucket'])}'>"
+            f"<td>{escape(item['bucket'])}</td>"
+            f"<td>{escape(component.get('name', ''))}</td>"
+            f"<td><code>{escape(component.get('version', ''))}</code></td>"
+            f"<td>{escape(component.get('ecosystem', ''))}</td>"
+            f"<td>{escape(str(advisory.get('cve') or advisory.get('advisory_id') or ''))}</td>"
+            f"<td><span class='pill {severity}'>{escape(str(advisory.get('final_risk', 'UNKNOWN')))}</span></td>"
+            f"<td>{item['cvss']:.1f}</td>"
+            f"<td>{item['epss']:.1%}</td>"
+            f"<td>{'Yes' if item['kev'] else 'No'}</td>"
+            f"<td><code>{escape(item['command'])}</code></td>"
+            f"<td>{download_html}</td>"
+            "</tr>"
+        )
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EPSS Remediation Report</title>
+<style>
+body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#09090b;color:#fafafa;padding:24px}}
+.container{{max-width:1320px;margin:0 auto}}
+.card{{background:#18181b;border:1px solid #3f3f46;border-radius:12px;padding:18px}}
+h1{{margin:0 0 6px}} .meta{{color:#a1a1aa;font-size:0.85rem;margin-bottom:16px}}
+table{{width:100%;border-collapse:collapse}} th,td{{padding:10px;border-bottom:1px solid #3f3f46;font-size:0.84rem;text-align:left;vertical-align:top}}
+th{{text-transform:uppercase;font-size:0.72rem;color:#a1a1aa;letter-spacing:0.05em}}
+code{{background:#27272a;padding:2px 6px;border-radius:4px}}
+.controls{{display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#a1a1aa;font-size:0.82rem}}
+select{{background:#27272a;color:#fafafa;border:1px solid #3f3f46;border-radius:8px;padding:6px 8px}}
+.pill{{font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px}}
+.pill.critical{{background:rgba(239,68,68,.2);color:#ef4444}}
+.pill.high{{background:rgba(249,115,22,.2);color:#f97316}}
+.pill.medium{{background:rgba(234,179,8,.2);color:#eab308}}
+.pill.low{{background:rgba(34,211,238,.2);color:#22d3ee}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>EPSS Remediation Queue</h1>
+    <div class="meta">{generated_at} · Ranked by KEV, severity, EPSS, and CVSS. Patch in this order.</div>
+    <div class="controls">
+      <label for="priorityFilter">Filter by Priority</label>
+      <select id="priorityFilter">
+        <option value="all">All</option>
+        <option value="Immediate">Immediate</option>
+        <option value="72h">72h</option>
+        <option value="7d">7d</option>
+        <option value="Backlog">Backlog</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Priority</th><th>Component</th><th>Version</th><th>Ecosystem</th><th>CVE / Advisory</th>
+          <th>Severity</th><th>CVSS</th><th>EPSS</th><th>KEV</th><th>Recommended Fix Command</th><th>Download</th>
+        </tr>
+      </thead>
+      <tbody>{''.join(table_rows) or "<tr><td colspan='11'>No vulnerabilities found.</td></tr>"}</tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function(){{
+  const filter = document.getElementById('priorityFilter');
+  const rows = document.querySelectorAll('tbody tr[data-priority]');
+  if (!filter) return;
+  filter.addEventListener('change', () => {{
+    const value = filter.value;
+    rows.forEach((row) => {{
+      const keep = value === 'all' || row.dataset.priority === value;
+      row.style.display = keep ? 'table-row' : 'none';
     }});
   }});
 }})();
@@ -1116,6 +1506,18 @@ def _write_combined_html(report: dict[str, Any], output_path: str | Path) -> Pat
         comp_name = escape(component.get("name", ""))
         comp_ver = escape(component.get("version", ""))
         comp_eco = escape(component.get("ecosystem", ""))
+        remediation_cmd, remediation_link = _component_remediation(component, advisories)
+        link_html = ""
+        if remediation_link:
+            safe_link = escape(remediation_link)
+            link_html = f'<a class="download-link" href="{safe_link}" target="_blank" rel="noopener noreferrer">Download update</a>'
+        remediation_html = (
+            f'<div class="remediation"><div class="rem-title">Recommended fix action</div>'
+            f'<code class="rem-cmd">{escape(remediation_cmd)}</code>'
+            f'<button class="copy-btn" data-copy="{escape(remediation_cmd)}">Copy command</button>'
+            f"{link_html}"
+            f"</div>"
+        )
 
         if sev_summary.get("critical"): card_accent = "var(--critical)"
         elif sev_summary.get("high"): card_accent = "var(--high)"
@@ -1197,6 +1599,7 @@ def _write_combined_html(report: dict[str, Any], output_path: str | Path) -> Pat
         </div>
         <div class="comp-pills">{sev_pills}</div>
       </div>
+      {remediation_html}
       <div class="adv-list">{''.join(adv_items)}</div>
     </div>""")
 
@@ -1316,6 +1719,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .fix-box code{{background:rgba(34,197,94,0.15);color:var(--green);padding:2px 8px;
   border-radius:4px;font-size:0.8rem;margin-right:6px}}
 .fix-box.no-fix{{color:var(--muted);background:var(--surface2);border-color:var(--border)}}
+.remediation{{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}}
+.rem-title{{font-size:0.75rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}}
+.rem-cmd{{display:block;padding:6px 8px;border-radius:6px;background:#111827;color:#a7f3d0;font-size:0.8rem;white-space:pre-wrap}}
+.copy-btn,.download-link{{margin-top:8px;display:inline-block;font-size:0.76rem;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none;cursor:pointer}}
+.download-link{{margin-left:8px}}
 .footer{{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;padding:16px}}
 </style>
 </head>
@@ -1414,6 +1822,16 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     }});
   }});
 }})();
+document.querySelectorAll('.copy-btn').forEach((btn)=>{{
+  btn.addEventListener('click', async () => {{
+    const text = btn.getAttribute('data-copy') || '';
+    try {{
+      await navigator.clipboard.writeText(text);
+      btn.textContent='Copied';
+      setTimeout(()=>btn.textContent='Copy command',1200);
+    }} catch (_e) {{}}
+  }});
+}});
 </script>
 </body>
 </html>""".strip()

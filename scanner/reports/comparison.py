@@ -1,7 +1,9 @@
 """Generate a head-to-head comparison report: Supply-Chain-Scanner vs Trivy vs OSV.dev."""
 from __future__ import annotations
-import json, html as _html, os, subprocess, urllib.request
+import json, html as _html, os, subprocess
 from pathlib import Path
+
+import requests
 
 def e(text: str) -> str:
     return _html.escape(str(text))
@@ -12,7 +14,10 @@ def _run_trivy_fs(scan_dir: str) -> list[dict]:
     try:
         proc = subprocess.run(
             ["trivy", "fs", "--scanners", "vuln", "--format", "json", scan_dir],
-            capture_output=True, timeout=180,
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=180,
         )
         data = json.loads(proc.stdout)
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
@@ -47,15 +52,16 @@ def _query_osv_for_deps(findings: list[dict]) -> dict:
     ]
     if not queries:
         return {"total": 0, "affected": 0, "cves": set(), "by_sev": {}}
-    payload = json.dumps({"queries": queries}).encode()
-    req = urllib.request.Request(
-        "https://api.osv.dev/v1/querybatch", data=payload,
-        headers={"Content-Type": "application/json"}, method="POST",
-    )
+    payload = {"queries": queries}
     try:
-        resp = urllib.request.urlopen(req, timeout=30)  # noqa: S310
-        results = json.loads(resp.read()).get("results", [])
-    except Exception:
+        resp = requests.post(
+            "https://api.osv.dev/v1/querybatch",
+            json=payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    except requests.RequestException:
         return {"total": 0, "affected": 0, "cves": set(), "by_sev": {}}
     total = 0
     affected = 0
@@ -430,10 +436,13 @@ def build_comparison_report(our_report_path: str, output_path: str, system_repor
         if vs_exts:
             try:
                 osv_queries = [{"package": {"name": ext["name"], "ecosystem": "npm"}, "version": ext["version"]} for ext in vs_exts]
-                osv_payload = json.dumps({"queries": osv_queries}).encode()
-                osv_req = urllib.request.Request("https://api.osv.dev/v1/querybatch", data=osv_payload, headers={"Content-Type": "application/json"}, method="POST")
-                osv_resp = urllib.request.urlopen(osv_req, timeout=30)  # noqa: S310
-                osv_batch = json.loads(osv_resp.read()).get("results", [])
+                osv_resp = requests.post(
+                    "https://api.osv.dev/v1/querybatch",
+                    json={"queries": osv_queries},
+                    timeout=30,
+                )
+                osv_resp.raise_for_status()
+                osv_batch = osv_resp.json().get("results", [])
                 for ext_c, res in zip(vs_exts, osv_batch):
                     vlist = res.get("vulns", [])
                     if vlist:
@@ -446,8 +455,8 @@ def build_comparison_report(our_report_path: str, output_path: str, system_repor
                             vs_osv_cves.add(alias)
                         pub = ext_c.get("metadata", {}).get("publisher", "?")
                         vs_osv_findings.append({"ext": f"{pub}.{ext_c['name']}", "version": ext_c["version"], "id": vid, "summary": v.get("summary", "")})
-            except Exception:
-                pass  # network failure — show 0
+            except requests.RequestException:
+                osv_batch = []
 
         # Build per-extension inventory rows
         vs_ext_our_counts: dict[str, int] = {}

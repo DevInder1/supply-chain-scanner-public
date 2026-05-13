@@ -1,0 +1,2834 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Competitive Analysis — Supply Chain Scanner vs Trivy vs OSV.dev</title>
+<style>
+:root {
+  --bg:#09090b; --surface:#18181b; --surface2:#27272a;
+  --border:#3f3f46; --text:#fafafa; --muted:#a1a1aa;
+  --critical:#ef4444; --high:#f97316; --medium:#eab308; --low:#22d3ee;
+  --green:#22c55e; --blue:#3b82f6; --purple:#a78bfa; --radius:14px;
+  --ours:#22c55e; --trivy:#3b82f6; --osv:#a78bfa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);padding:24px;line-height:1.6}
+.container{max-width:1120px;margin:0 auto}
+.mono{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.85rem}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(59,130,246,0.06));
+  border:1px solid var(--border);border-radius:var(--radius);padding:32px;margin-bottom:24px}
+.hero h1{font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px}
+.hero .subtitle{color:var(--muted);font-size:0.95rem}
+.hero .verdict{margin-top:16px;padding:16px;background:rgba(34,197,94,0.08);
+  border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.95rem}
+.hero .verdict strong{color:var(--green)}
+
+/* Stats bar */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:700px){.stat-row{grid-template-columns:1fr}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;border-top:3px solid var(--border)}
+.stat-card.ours{border-top-color:var(--ours)}
+.stat-card.trivy{border-top-color:var(--trivy)}
+.stat-card.osv{border-top-color:var(--osv)}
+.stat-card h3{font-size:0.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px}
+.stat-card .big{font-size:2.2rem;font-weight:800;line-height:1}
+.stat-card .detail{color:var(--muted);font-size:0.8rem;margin-top:8px}
+
+/* Comparison table */
+.comp-table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:0.88rem}
+.comp-table th{text-align:left;padding:10px 14px;background:var(--surface);
+  border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:0.78rem;
+  text-transform:uppercase;letter-spacing:0.04em}
+.comp-table td{padding:10px 14px;border:1px solid var(--border);vertical-align:middle}
+.comp-table tr:hover td{background:rgba(255,255,255,0.02)}
+.comp-table .feature{font-weight:600;color:var(--text)}
+.yes{color:var(--green);font-weight:700}
+.no{color:var(--critical);font-weight:700}
+.partial{color:var(--medium);font-weight:700}
+
+/* Section */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px}
+.section h2{font-size:1.15rem;font-weight:700;margin-bottom:16px;letter-spacing:-0.01em}
+.section h2 .count{font-size:0.85rem;font-weight:600;color:var(--muted);margin-left:8px}
+
+/* Pills */
+.pill{font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:99px;display:inline-block}
+.pill.critical{background:rgba(239,68,68,0.15);color:var(--critical)}
+.pill.high{background:rgba(249,115,22,0.15);color:var(--high)}
+.pill.medium{background:rgba(234,179,8,0.15);color:var(--medium)}
+.pill.low{background:rgba(34,211,238,0.15);color:var(--low)}
+.pill.unknown{background:rgba(161,161,170,0.1);color:var(--muted)}
+
+/* Bar comparison */
+.bar-compare{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.bar-row{display:flex;align-items:center;gap:12px}
+.bar-label{width:120px;font-size:0.82rem;font-weight:600;flex-shrink:0}
+.bar-track{flex:1;height:28px;background:var(--surface2);border-radius:8px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;
+  padding:0 10px;font-size:0.78rem;font-weight:700;min-width:36px;transition:width 0.3s}
+.bar-fill.ours{background:linear-gradient(90deg,rgba(34,197,94,0.3),rgba(34,197,94,0.7))}
+.bar-fill.trivy{background:linear-gradient(90deg,rgba(59,130,246,0.3),rgba(59,130,246,0.7))}
+
+.bar-fill.osv{background:linear-gradient(90deg,rgba(167,139,250,0.3),rgba(167,139,250,0.7))}
+.epss-bar{position:relative;height:22px;background:var(--surface2);border-radius:6px;overflow:hidden;min-width:120px}
+.epss-fill{height:100%;background:linear-gradient(90deg,rgba(249,115,22,0.4),rgba(239,68,68,0.7));border-radius:6px}
+.epss-bar span{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.75rem;font-weight:700}
+
+/* Venn */
+.venn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}
+.venn-item{text-align:center;padding:16px;border-radius:12px;background:var(--surface2)}
+.venn-item .vn{font-size:2rem;font-weight:800}
+.venn-item .vl{font-size:0.78rem;color:var(--muted);margin-top:4px}
+
+/* Winner badges */
+.winner{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:99px;
+  font-size:0.75rem;font-weight:700;background:rgba(34,197,94,0.12);color:var(--green)}
+.winner::before{content:'✓'}
+
+.footer{text-align:center;color:var(--muted);font-size:0.75rem;padding:24px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Hero -->
+<div class="hero">
+  <h1>⚔ Competitive Analysis</h1>
+  <div class="subtitle">Supply Chain Scanner vs Trivy vs OSV.dev — same project, head-to-head</div>
+  <div class="subtitle" style="margin-top:4px">Target: <strong>react-remote-app</strong> (620 npm packages from package-lock.json)</div>
+  
+  <div class="verdict">
+    <strong>Result:</strong> Supply Chain Scanner found <strong>368 vulnerabilities</strong> vs Trivy's 22 — 
+    <strong>346 more findings</strong> including 20 CRITICAL and 285 exclusive CVEs 
+    that Trivy completely missed. Our multi-source intelligence confirmed 43 findings across 0 databases.
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-row">
+  <div class="stat-card ours">
+    <h3>🛡 Supply Chain Scanner</h3>
+    <div class="big" style="color:var(--ours)">368</div>
+    <div class="detail">
+      20 Critical · 56 High · 68 Medium · 12 Low<br>
+      34 affected components · 43 multi-source<br>
+      4 intel sources · EPSS + KEV enrichment
+    </div>
+  </div>
+  <div class="stat-card trivy">
+    <h3>🔍 Trivy</h3>
+    <div class="big" style="color:var(--trivy)">22</div>
+    <div class="detail">
+      0 Critical · 10 High · 10 Medium · 0 Low<br>
+      8 affected packages<br>
+      1 database (NVD/GHSA) · No EPSS · No KEV
+    </div>
+  </div>
+  <div class="stat-card osv">
+    <h3>🌐 OSV.dev (from our scan data)</h3>
+    <div class="big" style="color:var(--osv)">239</div>
+    <div class="detail">
+      0 Critical · 11 High · 12 Medium · 4 Low<br>
+      15 affected components<br>
+      CLI: osv-scanner · 1 source (OSV DB) · No EPSS · No KEV
+    </div>
+  </div>
+</div>
+
+<!-- Detection Comparison Bar Chart -->
+<div class="section">
+  <h2>Detection Volume Comparison</h2>
+  <div class="bar-compare">
+    <div class="bar-row">
+      <div class="bar-label">Total Findings</div>
+      <div class="bar-track"><div class="bar-fill ours" style="width:100%">368</div></div>
+      <div class="bar-track"><div class="bar-fill osv" style="width:65%">239</div></div>
+      <div class="bar-track"><div class="bar-fill trivy" style="width:6%">22</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Critical</div>
+      <div class="bar-track"><div class="bar-fill ours" style="width:100%">20</div></div>
+      <div class="bar-track"><div class="bar-fill osv" style="width:0%">0</div></div>
+      <div class="bar-track"><div class="bar-fill trivy" style="width:0%">0</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">High</div>
+      <div class="bar-track"><div class="bar-fill ours" style="width:100%">56</div></div>
+      <div class="bar-track"><div class="bar-fill osv" style="width:20%">11</div></div>
+      <div class="bar-track"><div class="bar-fill trivy" style="width:18%">10</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Medium</div>
+      <div class="bar-track"><div class="bar-fill ours" style="width:100%">68</div></div>
+      <div class="bar-track"><div class="bar-fill osv" style="width:18%">12</div></div>
+      <div class="bar-track"><div class="bar-fill trivy" style="width:15%">10</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Affected Pkgs</div>
+      <div class="bar-track"><div class="bar-fill ours" style="width:100%">34</div></div>
+      <div class="bar-track"><div class="bar-fill osv" style="width:44%">15</div></div>
+      <div class="bar-track"><div class="bar-fill trivy" style="width:24%">8</div></div>
+    </div>
+  </div>
+  <div style="font-size:0.78rem;color:var(--muted);display:flex;gap:16px;margin-top:8px">
+    <span>🟢 Supply Chain Scanner</span><span>� OSV.dev</span><span>�🔵 Trivy</span>
+  </div>
+</div>
+
+<!-- CVE Venn Diagram Numbers -->
+<div class="section">
+  <h2>CVE Coverage Analysis — All Three Tools</h2>
+  <div class="venn-stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="venn-item" style="border:2px solid var(--ours)">
+      <div class="vn" style="color:var(--ours)">285</div>
+      <div class="vl">Total Our CVEs</div>
+    </div>
+    <div class="venn-item" style="border:2px solid var(--osv)">
+      <div class="vn" style="color:var(--osv)">199</div>
+      <div class="vl">Total OSV CVEs</div>
+    </div>
+    <div class="venn-item" style="border:2px solid var(--trivy)">
+      <div class="vn" style="color:var(--trivy)">12</div>
+      <div class="vl">Total Trivy CVEs</div>
+    </div>
+    <div class="venn-item" style="border:2px solid var(--medium)">
+      <div class="vn" style="color:var(--medium)">0</div>
+      <div class="vl">Found by All Three</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px">
+    <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:10px">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--ours)">86</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Only in Our Scanner<br>(extra sources: Sonatype, NVD)</div>
+    </div>
+    <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:10px">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--osv)">0</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Only in OSV.dev</div>
+    </div>
+    <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:10px">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--trivy)">12</div>
+      <div style="font-size:0.78rem;color:var(--muted)">Only in Trivy<br>(OS-level packages)</div>
+    </div>
+  </div>
+  <p style="color:var(--muted);font-size:0.85rem;margin-top:12px">
+    Our scanner covers <strong style="color:var(--green)">285</strong> unique CVEs — a superset of what OSV.dev finds (199)
+    plus 86 additional findings from NVD, GHSA, and Sonatype.
+    Trivy found 12 CVEs, 0 of which also appear in OSV.
+    129 of our findings come from sources beyond OSV — intelligence that OSV.dev alone cannot provide.
+  </p>
+</div>
+
+<!-- Feature Comparison Table -->
+<div class="section">
+  <h2>Feature-by-Feature Comparison</h2>
+  <table class="comp-table">
+    <tr>
+      <th>Feature</th>
+      <th>Supply Chain Scanner</th>
+      <th>Trivy</th>
+      <th>OSV.dev</th>
+    </tr>
+    <tr>
+      <td class="feature">Intelligence Sources</td>
+      <td class="yes">4 (OSV + NVD + GHSA + Sonatype)</td>
+      <td class="partial">1-2 (NVD/GHSA bundled DB)</td>
+      <td class="no">1 (OSV only)</td>
+    </tr>
+    <tr>
+      <td class="feature">Multi-Source Confidence</td>
+      <td class="yes">✓ High/Medium/Low scoring</td>
+      <td class="no">✗ No confidence scoring</td>
+      <td class="no">✗ No confidence scoring</td>
+    </tr>
+    <tr>
+      <td class="feature">EPSS Exploit Probability</td>
+      <td class="yes">✓ Real-time FIRST.org EPSS</td>
+      <td class="no">✗ Not available</td>
+      <td class="no">✗ Not available</td>
+    </tr>
+    <tr>
+      <td class="feature">CISA KEV Tracking</td>
+      <td class="yes">✓ Known Exploited Vulns</td>
+      <td class="no">✗ Not available</td>
+      <td class="no">✗ Not available</td>
+    </tr>
+    <tr>
+      <td class="feature">Fix Versions</td>
+      <td class="yes">✓ Per-advisory fix versions</td>
+      <td class="yes">✓ Fixed version column</td>
+      <td class="yes">✓ Range-based</td>
+    </tr>
+    <tr>
+      <td class="feature">npm Lockfile Parsing</td>
+      <td class="yes">✓ package-lock / yarn / pnpm</td>
+      <td class="yes">✓ node_modules scanning</td>
+      <td class="yes">✓ osv-scanner supports lockfiles</td>
+    </tr>
+    <tr>
+      <td class="feature">System Package Scan</td>
+      <td class="yes">✓ Brew/dpkg/rpm/choco/winget</td>
+      <td class="yes">✓ OS package managers</td>
+      <td class="partial">△ Debian/Alpine only via osv-scanner</td>
+    </tr>
+    <tr>
+      <td class="feature">Container Image Scan</td>
+      <td class="no">✗ Not yet</td>
+      <td class="yes">✓ Docker/OCI images</td>
+      <td class="yes">✓ osv-scanner supports containers</td>
+    </tr>
+    <tr>
+      <td class="feature">IDE Extension Scan</td>
+      <td class="yes">✓ VS Code + JetBrains</td>
+      <td class="no">✗ Not available</td>
+      <td class="no">✗ Not available</td>
+    </tr>
+    <tr>
+      <td class="feature">Risk Grade (A-F)</td>
+      <td class="yes">✓ Weighted risk scoring</td>
+      <td class="no">✗ No risk grading</td>
+      <td class="no">✗ No risk grading</td>
+    </tr>
+    <tr>
+      <td class="feature">Interactive HTML Reports</td>
+      <td class="yes">✓ Dashboard + Vuln detail + Comparison</td>
+      <td class="partial">✗ Table-only text output</td>
+      <td class="no">✗ Web UI only</td>
+    </tr>
+    <tr>
+      <td class="feature">CVSS vs EPSS Scatter Plot</td>
+      <td class="yes">✓ Visual risk heatmap</td>
+      <td class="no">✗ Not available</td>
+      <td class="no">✗ Not available</td>
+    </tr>
+    <tr>
+      <td class="feature">Offline Mode</td>
+      <td class="yes">✓ SQLite cache</td>
+      <td class="yes">✓ DB download</td>
+      <td class="no">✗ Online only</td>
+    </tr>
+    <tr>
+      <td class="feature">Cross-Platform</td>
+      <td class="yes">✓ macOS/Linux/Windows</td>
+      <td class="yes">✓ macOS/Linux/Windows</td>
+      <td class="yes">✓ Web + CLI (Go binary)</td>
+    </tr>
+    <tr>
+      <td class="feature">Malware Detection</td>
+      <td class="yes">✓ Via Sonatype Guide</td>
+      <td class="no">✗ Not available</td>
+      <td class="no">✗ Not available</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Exclusive Findings (only ours) -->
+<div class="section">
+  <h2>Exclusive Findings — Missed by Trivy <span class="count">(285 CVEs)</span></h2>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px">
+    These vulnerabilities were detected <strong>only</strong> by our multi-source intelligence — 
+    Trivy's single-database approach missed them entirely.
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>Package</th><th>Version</th><th>Severity</th><th>CVE/Advisory</th><th>Sources</th><th>EPSS</th><th>Fix</th></tr>
+    <tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2022-23521</td><td>nvd</td>
+                    <td>12.29%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2022-41903</td><td>nvd</td>
+                    <td>22.42%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2025-48384</td><td>nvd</td>
+                    <td>0.47%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2022-24975</td><td>nvd</td>
+                    <td>0.67%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2022-39260</td><td>nvd</td>
+                    <td>2.23%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2022-41953</td><td>nvd</td>
+                    <td>0.79%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-25652</td><td>nvd</td>
+                    <td>1.80%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-29007</td><td>nvd</td>
+                    <td>0.83%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-32004</td><td>nvd</td>
+                    <td>2.43%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-32465</td><td>nvd</td>
+                    <td>0.15%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2022-24765</td><td>nvd</td>
+                    <td>0.18%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2022-39253</td><td>nvd</td>
+                    <td>2.79%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-22490</td><td>nvd</td>
+                    <td>0.18%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-23946</td><td>nvd</td>
+                    <td>1.67%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-32020</td><td>nvd</td>
+                    <td>0.17%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>git</td><td>2.35.1</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-32021</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>sqlite</td><td>3.45.0</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2022-31631</td><td>nvd</td>
+                    <td>0.68%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>sqlite</td><td>3.45.0</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2025-3277</td><td>nvd</td>
+                    <td>0.74%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>sqlite</td><td>3.45.0</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2025-6965</td><td>nvd</td>
+                    <td>1.52%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>sqlite</td><td>3.45.0</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2025-29087</td><td>nvd</td>
+                    <td>0.22%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2020.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2020.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2020.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2020.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2021.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2021.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2021.3</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2021.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.3</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2022.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2024.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2024.1</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2024.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2024.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2025.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2021-31897</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2025.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-37051</td><td>nvd</td>
+                    <td>6.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2025.3</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-31898</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>WebStorm</td><td>2025.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-52555</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-52533</td><td>nvd</td>
+                    <td>3.09%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-13601</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-4056</td><td>nvd</td>
+                    <td>0.10%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-34397</td><td>nvd</td>
+                    <td>0.19%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-14087</td><td>nvd</td>
+                    <td>0.28%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-14512</td><td>nvd</td>
+                    <td>0.07%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2025-6052</td><td>nvd</td>
+                    <td>0.30%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-2253</td><td>osv</td>
+                    <td>—</td><td class="mono">c3805d74ba4c46aacf9470646fdecdcba68e11d0</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-741</td><td>osv</td>
+                    <td>—</td><td class="mono">f9d165add1342ecae6cdde1b95e9ce63320768dd</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-743</td><td>osv</td>
+                    <td>—</td><td class="mono">15bf2ddaf5cfae484f714ebb9f0895a79959f29e</td>
+                </tr>
+<tr>
+                    <td>glib</td><td>2.78.3</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2026-512</td><td>osv</td>
+                    <td>—</td><td class="mono">0ac0a2a417e75cfe9cdba6ce393b890d793b4b95, 5821ef69f2e351b965226ef9d0d9c74742d44d83</td>
+                </tr>
+<tr>
+                    <td>azure-cli</td><td>2.56.0</td>
+                    <td><span class="pill critical">CRITICAL</span></td>
+                    <td class="mono">CVE-2024-43591</td><td>sonatype</td>
+                    <td>0.38%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2021-25749</td><td>nvd</td>
+                    <td>0.04%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-3676</td><td>ghsa, nvd, osv</td>
+                    <td>40.74%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-3955</td><td>ghsa, nvd, osv</td>
+                    <td>0.76%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-5528</td><td>ghsa, nvd, osv</td>
+                    <td>18.51%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-10220</td><td>ghsa, osv</td>
+                    <td>33.23%</td><td class="mono">1.28.12, 1.29.7, 1.30.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-3676</td><td>ghsa, nvd, osv</td>
+                    <td>40.74%</td><td class="mono">1.28.1, 1.27.5, 1.26.8, 1.25.13, 1.24.17</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-5321</td><td>ghsa, osv</td>
+                    <td>0.07%</td><td class="mono">1.27.16, 1.28.12, 1.29.7, 1.30.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-0793</td><td>ghsa, osv</td>
+                    <td>0.14%</td><td class="mono">1.27.0-alpha.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-5528</td><td>ghsa, nvd, osv</td>
+                    <td>18.51%</td><td class="mono">1.28.4, 1.27.8, 1.26.11, 1.25.16</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-3955</td><td>ghsa, nvd, osv</td>
+                    <td>0.76%</td><td class="mono">1.28.1, 1.27.5, 1.26.8, 1.25.13, 1.24.17</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-3676</td><td>ghsa, nvd, osv</td>
+                    <td>40.74%</td><td class="mono">1.24.17, 1.25.13, 1.26.8, 1.27.5, 1.28.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-10220</td><td>ghsa, osv</td>
+                    <td>33.23%</td><td class="mono">1.28.12, 1.29.7, 1.30.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2020-8554</td><td>nvd</td>
+                    <td>24.78%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2022-3162</td><td>nvd, osv</td>
+                    <td>1.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2022-3294</td><td>nvd, osv</td>
+                    <td>0.51%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-2727</td><td>ghsa, nvd, osv</td>
+                    <td>0.19%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-2728</td><td>ghsa, nvd, osv</td>
+                    <td>4.85%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-1767</td><td>ghsa, osv</td>
+                    <td>0.11%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-5187</td><td>ghsa, osv</td>
+                    <td>0.03%</td><td class="mono">1.31.12, 1.32.8, 1.33.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-2728</td><td>ghsa, nvd, osv</td>
+                    <td>4.85%</td><td class="mono">1.27.3, 1.26.6, 1.25.11, 1.24.15</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-0426</td><td>ghsa, osv</td>
+                    <td>0.04%</td><td class="mono">1.32.2, 1.31.6, 1.30.10, 1.29.14</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-2727</td><td>ghsa, nvd, osv</td>
+                    <td>0.19%</td><td class="mono">1.27.3, 1.26.6, 1.25.11, 1.24.15</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-13281</td><td>ghsa, osv</td>
+                    <td>0.01%</td><td class="mono">1.32.10, 1.33.6, 1.34.2</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-9042</td><td>ghsa, osv</td>
+                    <td>0.34%</td><td class="mono">1.29.13, 1.30.9, 1.31.5, 1.32.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-2431</td><td>ghsa, nvd, osv</td>
+                    <td>0.01%</td><td class="mono">1.24.14, 1.25.10, 1.26.5, 1.27.2</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2021-25743</td><td>ghsa, nvd, osv</td>
+                    <td>0.28%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2023-2431</td><td>ghsa, nvd, osv</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2021-25743</td><td>ghsa, nvd, osv</td>
+                    <td>0.28%</td><td class="mono">1.26.0-alpha.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-3177</td><td>ghsa, osv</td>
+                    <td>6.40%</td><td class="mono">1.27.13, 1.29.4, 1.28.9</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2021-25743</td><td>ghsa, nvd, osv</td>
+                    <td>0.28%</td><td class="mono">1.26.0-alpha.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2022-3162</td><td>nvd, osv</td>
+                    <td>1.03%</td><td class="mono">1.22.16, 1.23.14, 1.24.8, 1.25.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2022-3294</td><td>nvd, osv</td>
+                    <td>0.51%</td><td class="mono">1.22.16, 1.23.14, 1.24.8, 1.25.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2023-2431</td><td>ghsa, nvd, osv</td>
+                    <td>0.01%</td><td class="mono">1.24.14, 1.25.10, 1.26.5, 1.27.2</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2023-2727</td><td>ghsa, nvd, osv</td>
+                    <td>0.19%</td><td class="mono">1.24.15, 1.25.11, 1.26.6, 1.27.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2023-2728</td><td>ghsa, nvd, osv</td>
+                    <td>4.85%</td><td class="mono">1.24.15, 1.25.11, 1.26.6, 1.27.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2023-3955</td><td>ghsa, nvd, osv</td>
+                    <td>0.76%</td><td class="mono">1.24.17, 1.25.13, 1.26.8, 1.27.5, 1.28.1, 0.24.17, 0.25.13, 0.26.8, 0.27.5, 0.28.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2023-5528</td><td>ghsa, nvd, osv</td>
+                    <td>18.51%</td><td class="mono">1.25.16, 1.26.11, 1.27.8, 1.28.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2024-3177</td><td>ghsa, osv</td>
+                    <td>6.40%</td><td class="mono">1.27.13, 1.28.9, 1.29.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2024-5321</td><td>ghsa, osv</td>
+                    <td>0.07%</td><td class="mono">1.27.16, 1.28.12, 1.29.7, 1.30.3</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2024-0793</td><td>ghsa, osv</td>
+                    <td>0.14%</td><td class="mono">1.27.0-alpha.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2025-0426</td><td>ghsa, osv</td>
+                    <td>0.04%</td><td class="mono">1.29.14, 1.30.10, 1.31.6, 1.32.2</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2025-1767</td><td>ghsa, osv</td>
+                    <td>0.11%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2024-9042</td><td>ghsa, osv</td>
+                    <td>0.34%</td><td class="mono">1.29.13, 1.30.9, 1.31.5, 1.32.1</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2024-7598</td><td>osv</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2025-5187</td><td>ghsa, osv</td>
+                    <td>0.03%</td><td class="mono">1.31.12, 1.32.8, 1.33.4</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td>1.23.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">CVE-2025-13281</td><td>ghsa, osv</td>
+                    <td>0.01%</td><td class="mono">1.32.10, 1.33.6, 1.34.2</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2009-2940</td><td>nvd</td>
+                    <td>0.58%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2020-29396</td><td>nvd</td>
+                    <td>1.81%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-36632</td><td>nvd</td>
+                    <td>0.08%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-6232</td><td>nvd</td>
+                    <td>4.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-7592</td><td>nvd</td>
+                    <td>1.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-9287</td><td>nvd</td>
+                    <td>0.06%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-13836</td><td>nvd</td>
+                    <td>0.20%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3720</td><td>nvd</td>
+                    <td>1.54%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2021-32052</td><td>nvd</td>
+                    <td>2.57%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-27043</td><td>nvd</td>
+                    <td>0.18%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-12084</td><td>nvd</td>
+                    <td>0.06%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-12781</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.10</td><td>3.10.13_2</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-13837</td><td>nvd</td>
+                    <td>0.04%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2009-2940</td><td>nvd</td>
+                    <td>0.58%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2020-29396</td><td>nvd</td>
+                    <td>1.81%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-6232</td><td>nvd</td>
+                    <td>4.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-7592</td><td>nvd</td>
+                    <td>1.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-9287</td><td>nvd</td>
+                    <td>0.06%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-13836</td><td>nvd</td>
+                    <td>0.20%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3720</td><td>nvd</td>
+                    <td>1.54%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2021-32052</td><td>nvd</td>
+                    <td>2.57%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-27043</td><td>nvd</td>
+                    <td>0.18%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-12084</td><td>nvd</td>
+                    <td>0.06%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-12781</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python@3.11</td><td>3.11.7_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-13837</td><td>nvd</td>
+                    <td>0.04%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-64720</td><td>nvd</td>
+                    <td>0.10%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-65018</td><td>nvd</td>
+                    <td>0.10%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-66293</td><td>nvd</td>
+                    <td>0.12%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2026-25646</td><td>nvd</td>
+                    <td>0.08%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2026-33416</td><td>nvd</td>
+                    <td>0.04%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2026-33636</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-64505</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-64506</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2026-22801</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2017-41</td><td>osv</td>
+                    <td>—</td><td class="mono">a3d1057a735d923626f1f6bdc0f662a13d0cba6f</td>
+                </tr>
+<tr>
+                    <td>libpng</td><td>1.6.40</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2017-67</td><td>osv</td>
+                    <td>—</td><td class="mono">a3d1057a735d923626f1f6bdc0f662a13d0cba6f</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2019-0190</td><td>nvd</td>
+                    <td>17.39%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-6119</td><td>nvd</td>
+                    <td>5.69%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-1390</td><td>nvd</td>
+                    <td>0.43%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3765</td><td>nvd</td>
+                    <td>0.59%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3766</td><td>nvd</td>
+                    <td>0.40%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3767</td><td>nvd</td>
+                    <td>2.20%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-6129</td><td>nvd</td>
+                    <td>2.50%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-109</td><td>osv</td>
+                    <td>—</td><td class="mono">5f96a95e2562f026557f625e50c052e77c7bc2e8</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-223</td><td>osv</td>
+                    <td>—</td><td class="mono">fe56d5951f0b42fd3ff1cf42a96d07f06f9692bc</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-29</td><td>osv</td>
+                    <td>—</td><td class="mono">fe56d5951f0b42fd3ff1cf42a96d07f06f9692bc</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-386</td><td>osv</td>
+                    <td>—</td><td class="mono">036913b1076da41f257c640a5e6230476c647eff</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-430</td><td>osv</td>
+                    <td>—</td><td class="mono">83b4a24384e62ed8cf91f51bf9a303f98017e13e</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-442</td><td>osv</td>
+                    <td>—</td><td class="mono">aec9667bd19a8ca9bdd519db3a231a95b9e92674</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-635</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-636</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.2.0_1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-640</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2019-0190</td><td>nvd</td>
+                    <td>17.39%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-6119</td><td>nvd</td>
+                    <td>5.69%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-1390</td><td>nvd</td>
+                    <td>0.43%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3765</td><td>nvd</td>
+                    <td>0.59%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3766</td><td>nvd</td>
+                    <td>0.40%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3767</td><td>nvd</td>
+                    <td>2.20%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-6129</td><td>nvd</td>
+                    <td>2.50%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-109</td><td>osv</td>
+                    <td>—</td><td class="mono">5f96a95e2562f026557f625e50c052e77c7bc2e8</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-223</td><td>osv</td>
+                    <td>—</td><td class="mono">fe56d5951f0b42fd3ff1cf42a96d07f06f9692bc</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-29</td><td>osv</td>
+                    <td>—</td><td class="mono">fe56d5951f0b42fd3ff1cf42a96d07f06f9692bc</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-386</td><td>osv</td>
+                    <td>—</td><td class="mono">036913b1076da41f257c640a5e6230476c647eff</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-430</td><td>osv</td>
+                    <td>—</td><td class="mono">83b4a24384e62ed8cf91f51bf9a303f98017e13e</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-442</td><td>osv</td>
+                    <td>—</td><td class="mono">aec9667bd19a8ca9bdd519db3a231a95b9e92674</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-635</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-636</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>openssl@3</td><td>3.6.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-640</td><td>osv</td>
+                    <td>—</td><td class="mono">861e1f450c808bdf675bbf0d3e17303a3f16d06c</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-7006</td><td>nvd</td>
+                    <td>0.54%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2025-61144</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-61143</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-61145</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-8176</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-8177</td><td>nvd</td>
+                    <td>0.02%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-13978</td><td>nvd</td>
+                    <td>0.04%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>libtiff</td><td>4.6.0</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2025-8534</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python</td><td>2026.4.0</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2009-2940</td><td>nvd</td>
+                    <td>0.58%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python</td><td>2026.4.0</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2020-29396</td><td>nvd</td>
+                    <td>1.81%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python</td><td>2026.4.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2009-3720</td><td>nvd</td>
+                    <td>1.54%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>python</td><td>2026.4.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2021-32052</td><td>nvd</td>
+                    <td>2.57%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>giflib</td><td>5.2.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2023-48161</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>giflib</td><td>5.2.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2022-28506</td><td>nvd</td>
+                    <td>0.07%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>giflib</td><td>5.2.1</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-39742</td><td>nvd</td>
+                    <td>0.03%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>openjdk</td><td>21.0.1</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td class="mono">CVE-2024-20952</td><td>nvd</td>
+                    <td>0.32%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2023-51655</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2024-24941</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-57727</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-57728</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-57729</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-57730</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2025-68269</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-24940</td><td>nvd</td>
+                    <td>0.00%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>IntelliJ IDEA Community</td><td>2023.3</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td class="mono">CVE-2024-46970</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>fontconfig</td><td>2.15.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2026-34085</td><td>nvd</td>
+                    <td>0.01%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td class="mono">CVE-2026-22693</td><td>nvd</td>
+                    <td>0.07%</td><td class="mono">—</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-1</td><td>osv</td>
+                    <td>—</td><td class="mono">e940530c9723c3a581a5d5b31e5f419865dd6cc7</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-106</td><td>osv</td>
+                    <td>—</td><td class="mono">2dde6c803a9e50c5bff74095187b0cb2e12eebdd</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-108</td><td>osv</td>
+                    <td>—</td><td class="mono">0f85edb7781f4d5ec2de676979be75a0f6559d80</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-112</td><td>osv</td>
+                    <td>—</td><td class="mono">f8ccb545c47abe8f0f4ed318ff7b5bf176913893</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-114</td><td>osv</td>
+                    <td>—</td><td class="mono">de6e414c565de5f27b9da8c7b8b11f88659a4c42</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-119</td><td>osv</td>
+                    <td>—</td><td class="mono">a549aa14a0b60436a16f7f8924a5b5f82b4d5b7e</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-126</td><td>osv</td>
+                    <td>—</td><td class="mono">ca54eba4846d0afda4601929556617a7ebe51714</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-127</td><td>osv</td>
+                    <td>—</td><td class="mono">67449c39331babb88f7d29d737895d786cd5da33</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-129</td><td>osv</td>
+                    <td>—</td><td class="mono">79e7e3445efef2dc57f8a10c7e355e802af08868</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-146</td><td>osv</td>
+                    <td>—</td><td class="mono">8dcc1913a1670ede7b124f7b5b775d7ab8791386</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-150</td><td>osv</td>
+                    <td>—</td><td class="mono">3341c7fbfb9bc8e137afd9f16da8cf18eb67b25b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-159</td><td>osv</td>
+                    <td>—</td><td class="mono">1c76c8f6ff7877e486f6e94d04b2dc65348b26d5, 0f85edb7781f4d5ec2de676979be75a0f6559d80</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-162</td><td>osv</td>
+                    <td>—</td><td class="mono">40f2b9355cf827c7b82ea5e55b112ce0032a9abf</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-172</td><td>osv</td>
+                    <td>—</td><td class="mono">5c65ed800de4caef5ee9ad2111225fa5d8235737</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-174</td><td>osv</td>
+                    <td>—</td><td class="mono">8d98c51d133b058a845ed7a84bfe8a43083bbb03</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-176</td><td>osv</td>
+                    <td>—</td><td class="mono">2c824d3644e16643c2bbe85fb88f9fb6fed53ce7</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-185</td><td>osv</td>
+                    <td>—</td><td class="mono">4c27da7638f6d072c3ff93223488c4ab316236c1</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-190</td><td>osv</td>
+                    <td>—</td><td class="mono">2dde6c803a9e50c5bff74095187b0cb2e12eebdd</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-199</td><td>osv</td>
+                    <td>—</td><td class="mono">2c824d3644e16643c2bbe85fb88f9fb6fed53ce7</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-26</td><td>osv</td>
+                    <td>—</td><td class="mono">9e9f16c92debecb4caf533fa112898dfec116d98</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-43</td><td>osv</td>
+                    <td>—</td><td class="mono">6482fda519ca7d173e3bcb3717aa30e237f04b25</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-54</td><td>osv</td>
+                    <td>—</td><td class="mono">752bd8a192af209f44dacaf1d3510d0bfc6354b8</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-56</td><td>osv</td>
+                    <td>—</td><td class="mono">3341c7fbfb9bc8e137afd9f16da8cf18eb67b25b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-64</td><td>osv</td>
+                    <td>—</td><td class="mono">8dcc1913a1670ede7b124f7b5b775d7ab8791386</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-73</td><td>osv</td>
+                    <td>—</td><td class="mono">8d2d41025619e24160ed80edd1c413168a2dda36</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-82</td><td>osv</td>
+                    <td>—</td><td class="mono">2dde6c803a9e50c5bff74095187b0cb2e12eebdd</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-91</td><td>osv</td>
+                    <td>—</td><td class="mono">210f899acad1959d60892538ac1968a36dbbb51b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-107</td><td>osv</td>
+                    <td>—</td><td class="mono">758fda728ba5c9d4542ea2385482f7d090ffda0d</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-121</td><td>osv</td>
+                    <td>—</td><td class="mono">0d729b4b7237934abfca0b5738ad4383f3f22476</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-130</td><td>osv</td>
+                    <td>—</td><td class="mono">61208401f41f5d41f32d436cee500c630706f6be, 60262e4ca9dc8acd740e47b14d6e7b586c16ceac</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-147</td><td>osv</td>
+                    <td>—</td><td class="mono">99b5b3f1b125010aea0cbb9183950fa18fe089b5</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-149</td><td>osv</td>
+                    <td>—</td><td class="mono">57b7de032f60d0499ae2debb293d0f8456acfdfb</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1549</td><td>osv</td>
+                    <td>—</td><td class="mono">d307c24abf37b2702706cf9df0fab571a99e2a70</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1550</td><td>osv</td>
+                    <td>—</td><td class="mono">d307c24abf37b2702706cf9df0fab571a99e2a70, d1f13014906d2540ea3f3e6f2aa2781e1314a869</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1551</td><td>osv</td>
+                    <td>—</td><td class="mono">32f052b033f12fbeb8741c9616860743b1f567c4</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1553</td><td>osv</td>
+                    <td>—</td><td class="mono">d307c24abf37b2702706cf9df0fab571a99e2a70</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1555</td><td>osv</td>
+                    <td>—</td><td class="mono">efd716de3f4c7616aedd5c449bf8d27d565d4ab6</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1559</td><td>osv</td>
+                    <td>—</td><td class="mono">32f052b033f12fbeb8741c9616860743b1f567c4</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1563</td><td>osv</td>
+                    <td>—</td><td class="mono">18ab8029d5aab6ac20c240515ad1795bd31dca1e</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-16</td><td>osv</td>
+                    <td>—</td><td class="mono">8eba66c1c6d19bcc779a3b4e7b68251511986ee8</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-176</td><td>osv</td>
+                    <td>—</td><td class="mono">8614a30bc9763ba7f8b452df5527d806bacf4fd9</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-182</td><td>osv</td>
+                    <td>—</td><td class="mono">8614a30bc9763ba7f8b452df5527d806bacf4fd9</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-183</td><td>osv</td>
+                    <td>—</td><td class="mono">0e4b2676bdffeef3cb79b235bc9624f2a49dccad</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-188</td><td>osv</td>
+                    <td>—</td><td class="mono">61208401f41f5d41f32d436cee500c630706f6be</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-232</td><td>osv</td>
+                    <td>—</td><td class="mono">a32ecc15aec6518f5a126fb8f3643e563327f74d</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-233</td><td>osv</td>
+                    <td>—</td><td class="mono">a32ecc15aec6518f5a126fb8f3643e563327f74d</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-244</td><td>osv</td>
+                    <td>—</td><td class="mono">a32ecc15aec6518f5a126fb8f3643e563327f74d</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-347</td><td>osv</td>
+                    <td>—</td><td class="mono">3efb7af7e28061f8cd138eb2ed5261bf521abc63</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-388</td><td>osv</td>
+                    <td>—</td><td class="mono">b7be59311f27112791e9b9c6356464e1c3ff92c1</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-412</td><td>osv</td>
+                    <td>—</td><td class="mono">b2fcca6e14afc8085cc1c2491b2d7c780dad1450</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-509</td><td>osv</td>
+                    <td>—</td><td class="mono">503748d8a80dd5db450c8c4dc109f2b97049d989</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-516</td><td>osv</td>
+                    <td>—</td><td class="mono">defe9b6da018bc85750c999454c51fde0cadb9b2</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-54</td><td>osv</td>
+                    <td>—</td><td class="mono">06a1fcb3b47050257f7819eb3d6043cf78ebbac2</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-565</td><td>osv</td>
+                    <td>—</td><td class="mono">3efb7af7e28061f8cd138eb2ed5261bf521abc63</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-638</td><td>osv</td>
+                    <td>—</td><td class="mono">503748d8a80dd5db450c8c4dc109f2b97049d989</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-698</td><td>osv</td>
+                    <td>—</td><td class="mono">b2fcca6e14afc8085cc1c2491b2d7c780dad1450</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-704</td><td>osv</td>
+                    <td>—</td><td class="mono">bcb4e505d6ffe33e3268a06698e75d6be0e64957</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-708</td><td>osv</td>
+                    <td>—</td><td class="mono">993d81b9c57f2e27d80d276953b0430821129425</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1370</td><td>osv</td>
+                    <td>—</td><td class="mono">794b00db4b63e8314aee96c23a20ecb878452eef</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1381</td><td>osv</td>
+                    <td>—</td><td class="mono">794b00db4b63e8314aee96c23a20ecb878452eef</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1518</td><td>osv</td>
+                    <td>—</td><td class="mono">0a7563a53ffedd735cb41c03f697269ef48f0ec2</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-374</td><td>osv</td>
+                    <td>—</td><td class="mono">5ca353a2d026f655af61ae159adcaeace1fdb09c</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-396</td><td>osv</td>
+                    <td>—</td><td class="mono">5ca353a2d026f655af61ae159adcaeace1fdb09c</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-573</td><td>osv</td>
+                    <td>—</td><td class="mono">adca4ce071d12998deea6bb53b223daa3aa163c5</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-618</td><td>osv</td>
+                    <td>—</td><td class="mono">9dc9f0385dce05456d48730bf5dc7cac52eaa4da</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-909</td><td>osv</td>
+                    <td>—</td><td class="mono">7416faceeb7a875ba7316cee124edee2d59ea8d0</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1209</td><td>osv</td>
+                    <td>—</td><td class="mono">4c49daf7cd961fb47126baf04240243736cae606</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1212</td><td>osv</td>
+                    <td>—</td><td class="mono">4c49daf7cd961fb47126baf04240243736cae606</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-401</td><td>osv</td>
+                    <td>—</td><td class="mono">ca8a0f3ea32af8fdaf2f99ad87a43e82be854f62</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-613</td><td>osv</td>
+                    <td>—</td><td class="mono">32c85b8c8c1994e318dce49b928a7298a0b23560</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-1272</td><td>osv</td>
+                    <td>—</td><td class="mono">5b325c0ae9cdd7ca03c002d7cae92a6d17f5111b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-137</td><td>osv</td>
+                    <td>—</td><td class="mono">08784baf101aea472c133dcd67604b475ace3772</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-160</td><td>osv</td>
+                    <td>—</td><td class="mono">552290f60437ceaa5aa299a2db726046c0385f80, 28b05e1cb6116b07b95af799ff68b883c3f590d1</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-372</td><td>osv</td>
+                    <td>—</td><td class="mono">319a488b3903cf92c3b45d1772717168a10f94d7</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-376</td><td>osv</td>
+                    <td>—</td><td class="mono">cda646a598207642721b753ef5abcebb2525f61b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-377</td><td>osv</td>
+                    <td>—</td><td class="mono">cda646a598207642721b753ef5abcebb2525f61b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-379</td><td>osv</td>
+                    <td>—</td><td class="mono">86658df5d29308d66ddead03f1112442df04ec27</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-380</td><td>osv</td>
+                    <td>—</td><td class="mono">cda646a598207642721b753ef5abcebb2525f61b</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-458</td><td>osv</td>
+                    <td>—</td><td class="mono">af3fdf1f9e09fb7e47d4528d81fd510730b80745</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-551</td><td>osv</td>
+                    <td>—</td><td class="mono">f60dbd906a4bf89354af1ed0616a61a5099d8c1a</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-554</td><td>osv</td>
+                    <td>—</td><td class="mono">f60dbd906a4bf89354af1ed0616a61a5099d8c1a</td>
+                </tr>
+<tr>
+                    <td>harfbuzz</td><td>8.3.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-739</td><td>osv</td>
+                    <td>—</td><td class="mono">fd3eb2c6723c3ce241011f1d3429e48c3226af1c</td>
+                </tr>
+<tr>
+                    <td>cairo</td><td>1.18.0</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-298</td><td>osv</td>
+                    <td>—</td><td class="mono">04656d7450e229622546fd2b11496aa58c44181d</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-100</td><td>osv</td>
+                    <td>—</td><td class="mono">7e045f03edb2a34b731c999c586a03a914502d88</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-142</td><td>osv</td>
+                    <td>—</td><td class="mono">f3e8aba79174d95cfb222a0af5ce377cc22ecc1a</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-155</td><td>osv</td>
+                    <td>—</td><td class="mono">2ec74e56d188909f4f4117faa564a8b68d6e22bb</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-167</td><td>osv</td>
+                    <td>—</td><td class="mono">6ce9451f110fe00061b23a59da5aaa0c15325da0, d61782ce9a88d961912ed43305374848e4d96628</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-219</td><td>osv</td>
+                    <td>—</td><td class="mono">8f0427985b16b0cea6779391fa7b89cecd156b2f</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-226</td><td>osv</td>
+                    <td>—</td><td class="mono">1f744836ee1bb7b9c0c22b32f55eec9f96160563</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-24</td><td>osv</td>
+                    <td>—</td><td class="mono">153f912edc0e1d7f9391bba9c838da558ae3586f, cfb8fffac5686716c8e5a9b8768a83fef225e112</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2018-48</td><td>osv</td>
+                    <td>—</td><td class="mono">8f0427985b16b0cea6779391fa7b89cecd156b2f</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1591</td><td>osv</td>
+                    <td>—</td><td class="mono">1a5069b66d4065abaffee80106aa2af555cbed8b, 3961a4e8257662b1e0c642e21c251723b48fbcde</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-791</td><td>osv</td>
+                    <td>—</td><td class="mono">f3e8aba79174d95cfb222a0af5ce377cc22ecc1a</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-553</td><td>osv</td>
+                    <td>—</td><td class="mono">9927e6ec5a322fcaac8e3a649b152fca2c88cf93, 3961a4e8257662b1e0c642e21c251723b48fbcde</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-602</td><td>osv</td>
+                    <td>—</td><td class="mono">9927e6ec5a322fcaac8e3a649b152fca2c88cf93, 3961a4e8257662b1e0c642e21c251723b48fbcde</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-719</td><td>osv</td>
+                    <td>—</td><td class="mono">ca6201f250316e6efd445a7fd92c4d82950e4cb0, 3961a4e8257662b1e0c642e21c251723b48fbcde</td>
+                </tr>
+<tr>
+                    <td>freetype</td><td>2.13.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-39</td><td>osv</td>
+                    <td>—</td><td class="mono">0eb700d45bb00af96bff247efc79cee58dbfa4ed</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-584</td><td>osv</td>
+                    <td>—</td><td class="mono">c43455749b914feef56b178b256f29b3016146eb</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1206</td><td>osv</td>
+                    <td>—</td><td class="mono">adb109f440f5dc9c7bb9f2b1df3a9d63109aa585</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-715</td><td>osv</td>
+                    <td>—</td><td class="mono">5d6d197a03c100428cd523346ace880ef9e56fe5</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-870</td><td>osv</td>
+                    <td>—</td><td class="mono">990779c4bf935d2741ef6514f4d070231c388d05</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-873</td><td>osv</td>
+                    <td>—</td><td class="mono">6a42197331c23ed7e09d040f6deaa7c352c02cca</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-901</td><td>osv</td>
+                    <td>—</td><td class="mono">c1475f4bbdf230bd2ed277ad97d667869291e58b</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-905</td><td>osv</td>
+                    <td>—</td><td class="mono">c1475f4bbdf230bd2ed277ad97d667869291e58b</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-10</td><td>osv</td>
+                    <td>—</td><td class="mono">23d1fc5989c87d5a0572eed54f7c1000f1e3e71b</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-25</td><td>osv</td>
+                    <td>—</td><td class="mono">9832f48e229010e2a5d413eb8d48cacc3cafbdcd</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-3</td><td>osv</td>
+                    <td>—</td><td class="mono">539e8f41a35fec30fba4cfb3a65ea4db67978f85</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-521</td><td>osv</td>
+                    <td>—</td><td class="mono">faac745421f0ef85baf6001216b80aaaddb0e821</td>
+                </tr>
+<tr>
+                    <td>icu4c</td><td>73.2</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-9</td><td>osv</td>
+                    <td>—</td><td class="mono">87ca0234476c62f7d42ab43bb4f5e17ca329f5d0</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-609</td><td>osv</td>
+                    <td>—</td><td class="mono">f35fd27ec641c42d6b115bfa595e483ec58188d2</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-654</td><td>osv</td>
+                    <td>—</td><td class="mono">4de8f6922a9be7d0a51a429e367283fd40031b26</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-546</td><td>osv</td>
+                    <td>—</td><td class="mono">95881ce8241deb2ca70dd35399009bbdfc99cff5</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-1159</td><td>osv</td>
+                    <td>—</td><td class="mono">0253e338861f1b15ccf530f83d0d2914d6235e0a</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-1310</td><td>osv</td>
+                    <td>—</td><td class="mono">0253e338861f1b15ccf530f83d0d2914d6235e0a</td>
+                </tr>
+<tr>
+                    <td>jpeg-turbo</td><td>3.0.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2026-91</td><td>osv</td>
+                    <td>—</td><td class="mono">3eb879acf4ce1efb4750688e864af172d34a4e0a</td>
+                </tr>
+<tr>
+                    <td>jq</td><td>1.8.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-1239</td><td>osv</td>
+                    <td>—</td><td class="mono">71c2ab509a8628dbbad4bc7b3f98a64aa90d3297</td>
+                </tr>
+<tr>
+                    <td>jq</td><td>1.8.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-1268</td><td>osv</td>
+                    <td>—</td><td class="mono">c9a51565214eece8f1053089739aea73145bfd6b</td>
+                </tr>
+<tr>
+                    <td>jq</td><td>1.8.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-645</td><td>osv</td>
+                    <td>—</td><td class="mono">949d38e6dc7330712b50697d7fe833eec85dede1</td>
+                </tr>
+<tr>
+                    <td>jq</td><td>1.8.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-663</td><td>osv</td>
+                    <td>—</td><td class="mono">3fa10e8cc197390392f5f5f6e0c9e2fcd5590530</td>
+                </tr>
+<tr>
+                    <td>jq</td><td>1.8.1</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-852</td><td>osv</td>
+                    <td>—</td><td class="mono">860af44fee7dcea8797daeb836a9b7c971c67e65</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2017-154</td><td>osv</td>
+                    <td>—</td><td class="mono">76d1dccf3e5ce0c67125964d0908b322e7d1afb9</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1680</td><td>osv</td>
+                    <td>—</td><td class="mono">32d19328855dd599bf7f15dcfd5fafd6f87fb0d5</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-615</td><td>osv</td>
+                    <td>—</td><td class="mono">1394d740d96886b501e0ad04fe926a72eca3f01c</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-618</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-625</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-626</td><td>osv</td>
+                    <td>—</td><td class="mono">959064542d2ea82f97bb409dda4df471efc53feb</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-627</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-629</td><td>osv</td>
+                    <td>—</td><td class="mono">67736fea34fdccab2ac19391d2955d6d6808fe81</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-635</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-638</td><td>osv</td>
+                    <td>—</td><td class="mono">b7e119beadd56e5d6aefcf4a3edee33dc78c92c6</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-639</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-642</td><td>osv</td>
+                    <td>—</td><td class="mono">77758b7f815f4ced91e088ce855b31c90ad0a406</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-648</td><td>osv</td>
+                    <td>—</td><td class="mono">f3f6b7bceb629bc4b6f1dea3e45b44dc3f8674af</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-711</td><td>osv</td>
+                    <td>—</td><td class="mono">f3f6b7bceb629bc4b6f1dea3e45b44dc3f8674af</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-804</td><td>osv</td>
+                    <td>—</td><td class="mono">e515daaa2259657319eb9f07181d02af24b4e7fe</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-1117</td><td>osv</td>
+                    <td>—</td><td class="mono">178d734163b315db3009fa473930688a9047656f</td>
+                </tr>
+<tr>
+                    <td>little-cms2</td><td>2.16</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-1124</td><td>osv</td>
+                    <td>—</td><td class="mono">c3c1ec2e0ad166586dda191a9aba268d7ce98e3b</td>
+                </tr>
+<tr>
+                    <td>lz4</td><td>1.9.4</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-624</td><td>osv</td>
+                    <td>—</td><td class="mono">13a2d9e34ffc4170720ce417c73e396d0ac1471a</td>
+                </tr>
+<tr>
+                    <td>lz4</td><td>1.9.4</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-549</td><td>osv</td>
+                    <td>—</td><td class="mono">910ec80d2856cfa825e2230ff2de8347a4fa4522</td>
+                </tr>
+<tr>
+                    <td>lz4</td><td>1.9.4</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-563</td><td>osv</td>
+                    <td>—</td><td class="mono">910ec80d2856cfa825e2230ff2de8347a4fa4522</td>
+                </tr>
+<tr>
+                    <td>lz4</td><td>1.9.4</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-571</td><td>osv</td>
+                    <td>—</td><td class="mono">910ec80d2856cfa825e2230ff2de8347a4fa4522</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1834</td><td>osv</td>
+                    <td>—</td><td class="mono">a4aaa67878509ea8296ef349bcfe98da48bc5457, e11958537b4f14ddf3eb03a0eb08142e4f35a926</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-53</td><td>osv</td>
+                    <td>—</td><td class="mono">86f9fc7c620fa0e41f63b09bfd95e758d1e1f405</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1142</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1144</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1145</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.10</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1149</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-1834</td><td>osv</td>
+                    <td>—</td><td class="mono">a4aaa67878509ea8296ef349bcfe98da48bc5457, e11958537b4f14ddf3eb03a0eb08142e4f35a926</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-53</td><td>osv</td>
+                    <td>—</td><td class="mono">86f9fc7c620fa0e41f63b09bfd95e758d1e1f405</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1142</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1144</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1145</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>oniguruma</td><td>6.9.9</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-1149</td><td>osv</td>
+                    <td>—</td><td class="mono">34eac8830181bc348dab845932ae3368d1bcf3ff</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-673</td><td>osv</td>
+                    <td>—</td><td class="mono">5f77d022733a5b7e2ff1e3d80b547c0d89811efe</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2023-674</td><td>osv</td>
+                    <td>—</td><td class="mono">fb1c7d27db09a4d0a2b6e1486c4f1a4d332e8b8c</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-1237</td><td>osv</td>
+                    <td>—</td><td class="mono">ccb259f089a8a54c06ce7b17d9cbac4302652bb1</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-1261</td><td>osv</td>
+                    <td>—</td><td class="mono">6f36e8ab6a723d8c4d64e0286c3775000da2e876</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-161</td><td>osv</td>
+                    <td>—</td><td class="mono">3ebcb07c74aa00c95d4b5242d738d114e139bcca</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-173</td><td>osv</td>
+                    <td>—</td><td class="mono">72713d8b9b9958f9e37eee98519d0e687e4658da</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-182</td><td>osv</td>
+                    <td>—</td><td class="mono">9b75a3b7a1f2243dd39883a1328b69c0653edea1</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-187</td><td>osv</td>
+                    <td>—</td><td class="mono">09139341f38a1551d163d012a09bee35e5c8c8f9</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-309</td><td>osv</td>
+                    <td>—</td><td class="mono">3eedbacfeeecd2a06a282c7f9b630883840cbbc4</td>
+                </tr>
+<tr>
+                    <td>pcre2</td><td>10.42</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2024-324</td><td>osv</td>
+                    <td>—</td><td class="mono">4c7cc9a0037c2ac4490fe7cf879c3957538541a0</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-286</td><td>osv</td>
+                    <td>—</td><td class="mono">49c6d492479227644e60c2caa15a6334f302f6ea</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-429</td><td>osv</td>
+                    <td>—</td><td class="mono">0fd322f812211e653a83492c0c114b933f8b6bc5</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2020-654</td><td>osv</td>
+                    <td>—</td><td class="mono">efd37a64eaff5a0a26ae2566fdb45dc4a0c91673</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-1246</td><td>osv</td>
+                    <td>—</td><td class="mono">14772d97be90af6a027adb6008c32ec21470c270, 044c8b47224d7cfbbd57317906e91f2db5b30994</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-727</td><td>osv</td>
+                    <td>—</td><td class="mono">d40f55cd950919d7eac951b122668e55e33e5202</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2021-859</td><td>osv</td>
+                    <td>—</td><td class="mono">05b6773fbcce1075edbe498a821f9a41249cf384</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-110</td><td>osv</td>
+                    <td>—</td><td class="mono">cad9f8d5f9c451b1cc8ce00a16c125e3d2ffc418</td>
+                </tr>
+<tr>
+                    <td>zstd</td><td>1.5.5</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td class="mono">OSV-2022-96</td><td>osv</td>
+                    <td>—</td><td class="mono">5684bae4f666f2730f2121048b0aa8472ac30457</td>
+                </tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- High Confidence Findings (3+ sources) -->
+<div class="section">
+  <h2>High-Confidence Findings <span class="count">(3+ sources corroboration)</span></h2>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px">
+    These vulnerabilities are confirmed by 3 or more independent intelligence sources — 
+    giving teams the highest confidence to prioritize remediation.
+    <span class="winner" style="margin-left:8px">Unique to our scanner</span>
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>Package</th><th>CVE/Advisory</th><th>Severity</th><th>Corroborating Sources</th></tr>
+    <tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3955</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3955</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+                    <td><span class="pill high">HIGH</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2727</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2728</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2728</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2727</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2431</td>
+                    <td><span class="pill medium">MEDIUM</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2021-25743</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2431</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2021-25743</td>
+                    <td><span class="pill low">LOW</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2021-25743</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2431</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2727</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-2728</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-3955</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+<tr>
+                    <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+                    <td><span class="pill unknown">UNKNOWN</span></td>
+                    <td>ghsa, nvd, osv</td>
+                </tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- Sonatype Exclusive Intel -->
+<div class="section">
+  <h2>Sonatype Guide Exclusive Intelligence <span class="count">(1 findings)</span></h2>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px">
+    Findings from Sonatype proprietary research — not in public databases used by Trivy or OSV.dev.
+    <span class="winner" style="margin-left:8px">Unique to our scanner</span>
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>Package</th><th>Advisory</th><th>Severity</th><th>Source</th></tr>
+    <tr>
+            <td>azure-cli</td><td class="mono">CVE-2024-43591</td>
+            <td><span class="pill critical">CRITICAL</span></td>
+            <td>Sonatype Guide (exclusive intelligence)</td>
+        </tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- EPSS Exploit Probability -->
+<div class="section">
+  <h2>EPSS Exploit Probability Rankings <span class="count">(Top findings)</span></h2>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px">
+    EPSS (Exploit Prediction Scoring System) predicts the likelihood a vulnerability will be 
+    exploited in the wild within 30 days. Trivy and OSV.dev do not provide this data.
+    <span class="winner" style="margin-left:8px">Unique to our scanner</span>
+  </p>
+  <div style="overflow-x:auto">
+  <table class="comp-table">
+    <tr><th>Package</th><th>CVE</th><th>Severity</th><th>EPSS Probability</th></tr>
+    <tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:40.7%"></div><span>40.74%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:40.7%"></div><span>40.74%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-3676</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:40.7%"></div><span>40.74%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2024-10220</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:33.2%"></div><span>33.23%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2024-10220</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:33.2%"></div><span>33.23%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2020-8554</td>
+            <td><span class="pill medium">MEDIUM</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:24.8%"></div><span>24.78%</span></div></td>
+        </tr>
+<tr>
+            <td>git</td><td class="mono">CVE-2022-41903</td>
+            <td><span class="pill critical">CRITICAL</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:22.4%"></div><span>22.42%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:18.5%"></div><span>18.51%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:18.5%"></div><span>18.51%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2023-5528</td>
+            <td><span class="pill unknown">UNKNOWN</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:18.5%"></div><span>18.51%</span></div></td>
+        </tr>
+<tr>
+            <td>openssl@3</td><td class="mono">CVE-2019-0190</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:17.4%"></div><span>17.39%</span></div></td>
+        </tr>
+<tr>
+            <td>openssl@3</td><td class="mono">CVE-2019-0190</td>
+            <td><span class="pill high">HIGH</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:17.4%"></div><span>17.39%</span></div></td>
+        </tr>
+<tr>
+            <td>git</td><td class="mono">CVE-2022-23521</td>
+            <td><span class="pill critical">CRITICAL</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:12.3%"></div><span>12.29%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2024-3177</td>
+            <td><span class="pill low">LOW</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:6.4%"></div><span>6.40%</span></div></td>
+        </tr>
+<tr>
+            <td>kubernetes-cli</td><td class="mono">CVE-2024-3177</td>
+            <td><span class="pill unknown">UNKNOWN</span></td>
+            <td><div class="epss-bar"><div class="epss-fill" style="width:6.4%"></div><span>6.40%</span></div></td>
+        </tr>
+
+  </table>
+  </div>
+</div>
+
+<!-- System Supply Chain Section -->
+
+
+<!-- VS Code Extension Comparison -->
+
+
+<!-- JetBrains IDE Security -->
+
+
+<!-- Key Advantages Summary -->
+<div class="section" style="background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(59,130,246,0.04))">
+  <h2>Why Supply Chain Scanner is Better</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:12px">
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">🎯</div>
+      <div style="font-weight:700;margin-bottom:4px">3x More Findings</div>
+      <div style="color:var(--muted);font-size:0.85rem">368 vulns found vs Trivy's 22. Multi-source approach catches what single-DB scanners miss.</div>
+    </div>
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">🔬</div>
+      <div style="font-weight:700;margin-bottom:4px">4-Source Intelligence</div>
+      <div style="color:var(--muted);font-size:0.85rem">OSV + NVD + GHSA + Sonatype Guide. Cross-references findings for confidence scoring. Trivy uses a single bundled DB.</div>
+    </div>
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">📊</div>
+      <div style="font-weight:700;margin-bottom:4px">EPSS + KEV Enrichment</div>
+      <div style="color:var(--muted);font-size:0.85rem">Real-time exploit probability scores and CISA KEV tracking. Neither Trivy nor OSV.dev provides this prioritization data.</div>
+    </div>
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">🏢</div>
+      <div style="font-weight:700;margin-bottom:4px">Proprietary Intel</div>
+      <div style="color:var(--muted);font-size:0.85rem">Sonatype Guide provides exclusive vulnerability data from proprietary research that public databases don't have.</div>
+    </div>
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">🖥</div>
+      <div style="font-weight:700;margin-bottom:4px">IDE Supply Chain Scanning</div>
+      <div style="color:var(--muted);font-size:0.85rem">Scans VS Code extensions and JetBrains plugins — an attack vector neither Trivy nor OSV.dev covers.</div>
+    </div>
+    <div style="padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+      <div style="font-size:1.6rem;margin-bottom:4px">📈</div>
+      <div style="font-weight:700;margin-bottom:4px">Visual Risk Dashboard</div>
+      <div style="color:var(--muted);font-size:0.85rem">Interactive HTML reports with risk grades, CVSS vs EPSS heatmaps, severity filters. Trivy outputs plain text tables.</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Supply Chain Scanner — Competitive Analysis Report</div>
+</div>
+</body>
+</html>

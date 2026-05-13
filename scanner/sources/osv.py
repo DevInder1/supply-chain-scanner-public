@@ -21,6 +21,7 @@ def sync_osv_advisories(
     base_url: str = OSV_BATCH_URL,
     vuln_url: str = OSV_VULN_URL,
     timeout: int = 30,
+    max_hydrate_requests: int = 50,
 ) -> None:
     if offline:
         return
@@ -42,6 +43,7 @@ def sync_osv_advisories(
     if not queries:
         return
 
+    hydrate_count = 0
     for start in range(0, len(queries), 100):
         batch_queries = queries[start : start + 100]
         batch_keys = query_keys[start : start + 100]
@@ -51,10 +53,18 @@ def sync_osv_advisories(
         results = payload.get("results", [])
         for index, result in enumerate(results):
             package_name, ecosystem = batch_keys[index]
-            advisories = [
-                _hydrate_advisory(vuln, vuln_url=vuln_url, timeout=timeout)
-                for vuln in result.get("vulns", [])
-            ]
+            advisories = []
+            for vuln in result.get("vulns", []):
+                should_hydrate = hydrate_count < max_hydrate_requests
+                advisory = _hydrate_advisory(
+                    vuln,
+                    vuln_url=vuln_url,
+                    timeout=timeout,
+                    should_hydrate=should_hydrate,
+                )
+                if should_hydrate and advisory is not vuln:
+                    hydrate_count += 1
+                advisories.append(advisory)
             advisories = [advisory for advisory in advisories if advisory]
             db.store_package_advisories(package_name, ecosystem, advisories)
 
@@ -64,6 +74,7 @@ def _hydrate_advisory(
     *,
     vuln_url: str,
     timeout: int,
+    should_hydrate: bool,
 ) -> dict[str, Any] | None:
     advisory_id = advisory_stub.get("id")
     if not advisory_id:
@@ -71,9 +82,16 @@ def _hydrate_advisory(
     if advisory_stub.get("affected"):
         return advisory_stub
 
-    response = requests.get(vuln_url.format(advisory_id=advisory_id), timeout=timeout)
-    response.raise_for_status()
-    return response.json()
+    if not should_hydrate:
+        return advisory_stub
+
+    try:
+        response = requests.get(vuln_url.format(advisory_id=advisory_id), timeout=timeout)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException:
+        # Fall back to stub to avoid blocking complete scan on advisory hydration.
+        return advisory_stub
 
 
 def _build_query(component: Component) -> dict[str, Any] | None:

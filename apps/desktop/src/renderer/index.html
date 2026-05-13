@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';" />
+  <title>Supply Chain Scanner Desktop</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1>Supply Chain Scanner Command Builder</h1>
+      <p>Tune scan flags, run locally, and open reports instantly.</p>
+      <div id="statusPill" class="status idle">Idle</div>
+      <div class="progress-wrap">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="progressText" class="progress-text">Waiting to start</div>
+    </header>
+
+    <section class="card">
+      <h2>Builder</h2>
+      <div class="grid">
+        <label>Run Profile
+          <select id="runProfile">
+            <option value="full" selected>Recommended (public, no key required)</option>
+            <option value="quick">Quick (project-focused, faster)</option>
+            <option value="power">Power-user (with API keys, best coverage)</option>
+            <option value="offline">Offline (air-gapped, local DB only)</option>
+          </select>
+        </label>
+        <label>Scan Target
+          <select id="scan">
+            <option value="all" selected>all</option>
+            <option value="project">project</option>
+            <option value="system">system</option>
+          </select>
+        </label>
+        <label>Project Path
+          <div class="inline-field">
+            <input id="projectPath" value="" readonly />
+            <button id="browsePathBtn" type="button">Browse</button>
+          </div>
+        </label>
+        <label>Output Dir
+          <input id="outputDir" value="scanner/desktop-output" />
+        </label>
+      </div>
+      <div class="row">
+        <button id="buildBtn">Build Command</button>
+        <button id="runBtn">Run Scan</button>
+        <button id="stopBtn" type="button">Stop Scan</button>
+      </div>
+      <p id="hint" class="hint"></p>
+      <pre id="modeGuide">Mode guide will appear here.</pre>
+      <pre id="command"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Run</h2>
+      <pre id="logs">Waiting for scan...</pre>
+    </section>
+
+    <section class="card">
+      <h2>Results</h2>
+      <pre id="results">No scan run yet.</pre>
+      <pre id="sourceStatus">Source status will appear after first scan.</pre>
+      <div class="row">
+        <button id="openJson">Open JSON report</button>
+        <button id="openHtml">Open HTML report</button>
+        <button id="openVulnHtml">Open Vulnerabilities report</button>
+        <button id="openEpssHtml">Open EPSS Remediation report</button>
+      </div>
+    </section>
+  </main>
+  <script src="./renderer.js"></script>
+</body>
+</html>
