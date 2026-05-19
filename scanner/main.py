@@ -35,6 +35,11 @@ from scanner.sources.ossindex import sync_ossindex_advisories
 from scanner.storage.db import VulnerabilityDatabase
 
 logger = logging.getLogger(__name__)
+_PROGRESS_ENABLED = True
+
+
+def _default_config_path() -> str:
+    return str((Path(__file__).resolve().parent / "config.yaml"))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -52,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Relative directory path to exclude from project dependency discovery (repeatable)",
     )
-    parser.add_argument("--config", default="scanner/config.yaml", help="Path to the scanner config file")
+    parser.add_argument("--config", default=_default_config_path(), help="Path to the scanner config file")
     parser.add_argument("--db-path", help="Override the SQLite cache path")
     parser.add_argument("--output-dir", help="Output directory for deterministic report file names")
     parser.add_argument("--output", help="Path for the JSON report output")
@@ -84,15 +89,17 @@ def _load_dotenv() -> None:
             _os.environ.setdefault(key, value)
 
 
-def main() -> int:
+def execute_scan(args: argparse.Namespace, *, emit_progress: bool = True) -> dict[str, Any]:
+    """Run the scanner pipeline and return a summary payload."""
+    global _PROGRESS_ENABLED
+    previous_progress = _PROGRESS_ENABLED
+    _PROGRESS_ENABLED = emit_progress
     _load_dotenv()
-    args = build_parser().parse_args()
     _apply_run_profile_defaults(args)
     if args.scan in {"all", "project"}:
         project_root = expand_path(args.project_path)
         if not project_root.is_dir():
-            print(f"Error: project path is not a directory: {project_root}", file=sys.stderr)
-            return 2
+            raise ValueError(f"project path is not a directory: {project_root}")
         args.project_path = str(project_root)
     config = load_config(args.config)
     storage_config = config.get("storage", {})
@@ -124,6 +131,7 @@ def main() -> int:
         has_ghsa_token=bool(github_token),
         has_sonatype_token=bool(sonatype_token),
     )
+    report: dict[str, Any] | None = None
     try:
         _emit_progress("Starting advisory synchronization")
         # --- Source 1: OSV ---
@@ -223,8 +231,12 @@ def main() -> int:
             write_epss_remediation_html_report(report, epss_html_output)
     finally:
         db.close()
+        _PROGRESS_ENABLED = previous_progress
 
-    _print_summary(
+    if report is None:
+        raise RuntimeError("scan failed before report generation")
+
+    return _build_summary_payload(
         report,
         json_output,
         html_output,
@@ -232,6 +244,16 @@ def main() -> int:
         epss_html_output,
         args.run_profile,
     )
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    try:
+        summary = execute_scan(args, emit_progress=True)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(summary, indent=2))
     return 0
 
 
@@ -291,6 +313,8 @@ def _run_source_sync(
 
 
 def _emit_progress(message: str) -> None:
+    if not _PROGRESS_ENABLED:
+        return
     print(f"[progress] {message}", flush=True)
 
 
@@ -358,14 +382,14 @@ def advisory_cve_item(finding: dict[str, Any]) -> str | None:
     return None
 
 
-def _print_summary(
+def _build_summary_payload(
     report: dict[str, Any],
     json_output: Path,
     html_output: Path | None,
     vuln_html_output: Path | None = None,
     epss_html_output: Path | None = None,
     run_profile: str | None = None,
-) -> None:
+) -> dict[str, Any]:
     summary = report["summary"]
     coverage = report.get("scan_coverage", {})
     vulns = report.get("vulnerabilities", [])
@@ -406,7 +430,7 @@ def _print_summary(
         payload["vuln_fixes_report_path"] = str(vuln_html_output)
     if epss_html_output:
         payload["epss_remediation_report_path"] = str(epss_html_output)
-    print(json.dumps(payload, indent=2))
+    return payload
 
 
 if __name__ == "__main__":

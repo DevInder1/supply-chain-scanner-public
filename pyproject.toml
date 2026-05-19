@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devinder-supply-chain-scanner"
+version = "0.1.0"
+description = "Local-first supply chain vulnerability scanner for project, system, and extensions."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Supply Chain Scanner Contributors" }
+]
+dependencies = [
+  "requests>=2.31.0",
+  "defusedxml>=0.7.1"
+]
+keywords = ["security", "supply-chain", "vulnerability", "scanner", "sbom"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance"
+]
+
+[project.urls]
+Homepage = "https://github.com/DevInder1/supply-chain-scanner-public"
+Repository = "https://github.com/DevInder1/supply-chain-scanner-public"
+
+[project.scripts]
+supply-chain-scanner = "scanner.main:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["scanner*"]
+
+[tool.setuptools.package-data]
+scanner = ["config.yaml"]

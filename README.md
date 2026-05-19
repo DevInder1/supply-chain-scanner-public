@@ -1,44 +1,104 @@
 # Supply Chain Scanner
 
-Local-first vulnerability scanner with a desktop command-builder workflow.
+Local-first vulnerability scanner for project dependencies, developer tools, and IDE extensions.  
+Uses multi-source intelligence (OSV, NVD, GHSA, Sonatype) with KEV/EPSS prioritization.
 
-## Scanner CLI
+**No API key required** for default usage.
 
-- Entry point: `python -m scanner.main`
-- CLI contract: `docs/cli-contract.md`
+Public repo: https://github.com/DevInder1/supply-chain-scanner-public
 
-## Desktop App
+---
 
-- Path: `apps/desktop`
-- Start: `npm install && npm run start`
-- Works without API keys by default; optional keys only improve coverage/rate limits
+## Install (plug and play)
 
-## No-Key Usage (Public Friendly)
+### Python (recommended)
 
-- Recommended public setup:
-  - Default mode: no key required
-  - Run with OSV + NVD (NVD without key can be rate-limited but still works)
-  - GHSA/Sonatype are skipped automatically when tokens are not present
-  - Optional 4th profile: Power-user mode (with keys) for best coverage/rate/performance
-  - Offline mode is available and works with local advisory DB/cache only
-  - Power-user mode: add optional keys for better coverage/rate/performance
-- Optional environment keys (power users):
-  - `NVD_API_KEY`
-  - `GITHUB_TOKEN`
-  - `SONATYPE_TOKEN`
+```bash
+pip install devinder-supply-chain-scanner
+```
 
-## Packaging
+```bash
+supply-chain-scanner --scan all --project-path . --output-dir scanner-output
+```
 
-- Guide: `packaging/README.md`
-- Zero-install validation: `packaging/validation/zero_install_checklist.md`
+### npm (Node wrapper)
 
-## TRA Security Checks
+Requires Python 3.10+ and the pip package above.
 
-- Run automated TRA checks: `python3 security/run_tra_checks.py`
-- OWASP ZAP baseline (web): `python3 security/run_tra_checks.py --run-zap --target-url https://example.com`
-- Snyk SCA: `python3 security/run_tra_checks.py --run-snyk`
-- SonarQube SAST: `python3 security/run_tra_checks.py --run-sonarqube`
-- Checkmarx SAST: `python3 security/run_tra_checks.py --run-checkmarx`
-- Nmap infra scan: `python3 security/run_tra_checks.py --run-nmap --target-host 127.0.0.1`
-- Burp evidence attach: `python3 security/run_tra_checks.py --burp-report /path/to/burp-report.xml`
-- Output report: `security/tra-report.json`
+```bash
+npm install -g @devinder1/supply-chain-scanner-cli
+```
+
+```bash
+supply-chain-scanner --scan project --project-path .
+```
+
+---
+
+## Use in your own Python app
+
+```python
+from scanner import run_scan
+
+summary = run_scan(
+    project_path=".",
+    scan="all",
+    run_profile="full",  # no API key required
+    output_dir="scanner-output",
+)
+print(summary["summary"])
+```
+
+---
+
+## Scan profiles
+
+| Profile | Description |
+|---------|-------------|
+| `full` (default) | Project + system + extensions. OSV + NVD without keys. |
+| `quick` | Faster project-focused scan. |
+| `offline` | Local advisory DB only, no network. |
+| Power-user | Add `GITHUB_TOKEN`, `NVD_API_KEY`, optional `SONATYPE_TOKEN` for best coverage. |
+
+---
+
+## Desktop app
+
+```bash
+cd apps/desktop
+npm install
+npm run start
+```
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/DevInder1/supply-chain-scanner-public.git
+cd supply-chain-scanner-public
+python3 -m pip install -e .
+supply-chain-scanner --help
+python3 -m unittest scanner.tests.test_matcher_ranges -v
+```
+
+CLI contract: `docs/cli-contract.md`  
+Publishing: `docs/PUBLISHING.md`
+
+---
+
+## Optional API keys (power users)
+
+| Variable | Purpose |
+|----------|---------|
+| `NVD_API_KEY` | Higher NVD rate limits |
+| `GITHUB_TOKEN` | GHSA advisories |
+| `SONATYPE_TOKEN` | Sonatype Guide advisories |
+
+Set in `.env` or environment variables.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)

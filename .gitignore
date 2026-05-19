@@ -6,6 +6,11 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+build/
+dist/
+*.egg-info/
+devinder_supply_chain_scanner.egg-info/
+supply_chain_scanner.egg-info/
 
 # Scanner artifacts
 scanner/storage/vuln_cache.db
@@ -18,3 +23,7 @@ scanner/desktop-validation/
 apps/desktop/node_modules/
 apps/desktop/dist/
 apps/desktop/release/
+
+# NPM wrapper artifacts
+npm-wrapper/node_modules/
+npm-wrapper/*.tgz
