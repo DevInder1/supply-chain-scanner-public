@@ -69,6 +69,10 @@ See [apps/desktop/README.md](apps/desktop/README.md) and [docs/DISTRIBUTION_VERI
 
 Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md).
 
+**Integration architecture** (Claude MCP, OpenAI, Cursor, VS Code): [docs/INTEGRATION_ARCHITECTURE.md](docs/INTEGRATION_ARCHITECTURE.md) · [Roadmap](docs/ROADMAP_INTEGRATIONS.md)
+
+Unified tool layer (for adapters): `from scanner.integrations import execute_tool, get_tool_definitions`
+
 ---
 
 ## Development
