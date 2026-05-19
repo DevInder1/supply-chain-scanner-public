@@ -11,26 +11,17 @@ Public repo: https://github.com/DevInder1/supply-chain-scanner-public
 
 ## Install (plug and play)
 
-### Python (recommended)
-
 ```bash
-pip install tridentchain-security
+pip3 install tridentchain-security
+npm install -g @tridentchain/security-cli
+tridentchain-security --help
 ```
+
+Full guide: **[docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md)**  
+(PyPI: [tridentchain-security](https://pypi.org/project/tridentchain-security/) · npm: [@tridentchain/security-cli](https://www.npmjs.com/package/@tridentchain/security-cli))
 
 ```bash
 tridentchain-security --scan all --project-path . --output-dir scanner-output
-```
-
-### npm (Node wrapper)
-
-Requires Python 3.10+ and the pip package above.
-
-```bash
-npm install -g @tridentchain/security-cli
-```
-
-```bash
-tridentchain-security --scan project --project-path .
 ```
 
 ---
@@ -82,6 +73,7 @@ tridentchain-security --help
 python3 -m unittest scanner.tests.test_matcher_ranges -v
 ```
 
+Install & use: `docs/INSTALL_AND_USE.md`  
 CLI contract: `docs/cli-contract.md`  
 Publishing: `docs/PUBLISHING.md`
 

@@ -1,0 +1,230 @@
+# TridentChain Security — Install & Use
+
+This guide explains how to install TridentChain Security from **PyPI** and **npm**, verify the CLI, and run your first scan.
+
+**Published packages**
+
+| Registry | Package | Install |
+|----------|---------|---------|
+| PyPI | [tridentchain-security](https://pypi.org/project/tridentchain-security/) | `pip3 install tridentchain-security` |
+| npm | [@tridentchain/security-cli](https://www.npmjs.com/package/@tridentchain/security-cli) | `npm install -g @tridentchain/security-cli` |
+
+After install, both paths expose the same command: **`tridentchain-security`**.
+
+---
+
+## Prerequisites
+
+- **Python 3.10+** (required for the scanner engine)
+- **Node.js 18+** (only if you install the npm wrapper)
+- macOS / Linux / Windows
+
+On macOS with Homebrew Python, prefer `pip3` or `python3 -m pip` instead of a broken legacy `pip` shim.
+
+---
+
+## Step 1 — Install the Python package (core)
+
+```bash
+pip3 install tridentchain-security
+```
+
+**What this does**
+
+- Downloads the scanner from PyPI.
+- Installs the `scanner` Python module and dependencies (`requests`, `defusedxml`).
+- Registers the CLI entry point **`tridentchain-security`** on your PATH.
+
+**Alternative (recommended on macOS)**
+
+```bash
+python3 -m pip install tridentchain-security
+```
+
+**If you see** `bad interpreter: /usr/bin/python`
+
+Your `pip` command points at a removed system Python. Use `pip3` or `python3 -m pip` as above.
+
+---
+
+## Step 2 — Install the npm wrapper (optional)
+
+```bash
+npm install -g @tridentchain/security-cli
+```
+
+**What this does**
+
+- Installs a small Node.js launcher globally.
+- The launcher checks that the Python package is installed, then runs `python3 -m scanner.main` with your CLI arguments.
+- Exposes the same command: **`tridentchain-security`**.
+
+**You need both** if you use the npm path: the npm package is a wrapper; the Python package does the actual scanning.
+
+---
+
+## Step 3 — Verify installation
+
+```bash
+tridentchain-security --help
+```
+
+You should see usage for `--scan`, `--run-profile`, `--project-path`, `--output-dir`, and related options.
+
+Quick version check:
+
+```bash
+python3 -c "import scanner; print(scanner.__version__)"
+```
+
+---
+
+## How it works (architecture)
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  tridentchain-security  (CLI command)                       │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+         ┌──────────────────┴──────────────────┐
+         │                                     │
+   pip install                          npm install -g
+   tridentchain-security                 @tridentchain/security-cli
+         │                                     │
+         ▼                                     ▼
+   Python entry point                   Node wrapper script
+   scanner.main:main                   → python3 -m scanner.main
+         │                                     │
+         └──────────────────┬──────────────────┘
+                            ▼
+              ┌─────────────────────────────┐
+              │  Scanner engine (Python)    │
+              │  • Discover manifests       │
+              │  • Sync advisories (OSV…)   │
+              │  • Match CVEs / GHSA / KEV  │
+              │  • Generate HTML/JSON       │
+              └─────────────────────────────┘
+```
+
+1. **Discovery** — Finds dependencies from `package.json`, lockfiles, `requirements.txt`, system tools, VS Code / JetBrains extensions, etc.
+2. **Intelligence** — Pulls vulnerability data from public sources (OSV, NVD, and more). No API key required for default `full` profile.
+3. **Matching** — Compares installed versions against affected version ranges.
+4. **Reports** — Writes JSON and HTML reports to your chosen output directory.
+
+---
+
+## First scan
+
+### Recommended (project + system + extensions)
+
+```bash
+cd /path/to/your/project
+tridentchain-security --scan all --project-path . --output-dir scanner-output
+```
+
+### Project dependencies only (faster)
+
+```bash
+tridentchain-security --scan project --project-path . --output-dir scanner-output
+```
+
+### Quick profile (lighter run)
+
+```bash
+tridentchain-security --scan all --project-path . --run-profile quick --output-dir scanner-output
+```
+
+### Offline (cached data only)
+
+```bash
+tridentchain-security --scan project --project-path . --run-profile offline --output-dir scanner-output
+```
+
+---
+
+## Scan profiles
+
+| Profile | Flag | Behavior |
+|---------|------|----------|
+| **full** | `--run-profile full` (default) | Project + system + extensions; OSV + NVD without keys |
+| **quick** | `--run-profile quick` | Faster, project-focused |
+| **offline** | `--run-profile offline` | Local advisory cache only, no network |
+
+---
+
+## Output files
+
+With `--output-dir scanner-output`, typical outputs include:
+
+| File | Description |
+|------|-------------|
+| `scan-report.json` | Machine-readable summary |
+| `scan-report.html` | Main HTML dashboard |
+| `scan-vulnerabilities.html` | Vulnerabilities and fix versions |
+| `scan-remediation-epss.html` | EPSS-prioritized remediation view |
+
+Open the HTML files in any browser.
+
+---
+
+## Optional API keys (power users)
+
+Set environment variables or pass flags for richer coverage:
+
+| Variable / flag | Purpose |
+|-----------------|--------|
+| `NVD_API_KEY` / `--nvd-api-key` | Higher NVD rate limits |
+| `GITHUB_TOKEN` / `--github-token` | GitHub Security Advisory (GHSA) data |
+| `SONATYPE_TOKEN` | Sonatype Guide advisories |
+
+Example:
+
+```bash
+export GITHUB_TOKEN=ghp_...
+export NVD_API_KEY=...
+tridentchain-security --scan all --project-path . --output-dir scanner-output
+```
+
+---
+
+## Use from Python code
+
+```python
+from scanner import run_scan
+
+summary = run_scan(
+    project_path=".",
+    scan="all",
+    run_profile="full",
+    output_dir="scanner-output",
+)
+print(summary["summary"])
+```
+
+---
+
+## Uninstall
+
+```bash
+pip3 uninstall tridentchain-security
+npm uninstall -g @tridentchain/security-cli
+```
+
+---
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `pip: bad interpreter` | Use `pip3 install` or `python3 -m pip install` |
+| `command not found: tridentchain-security` | Ensure Python/ npm global bin is on your `PATH` |
+| npm wrapper: package not installed | Run `pip3 install tridentchain-security` first |
+| Slow first run | First sync downloads advisory data; later runs use cache |
+
+---
+
+## Related docs
+
+- [README](../README.md) — project overview
+- [Publishing](PUBLISHING.md) — maintainers: PyPI/npm release
+- [CLI contract](cli-contract.md) — stable CLI flags for integrations
