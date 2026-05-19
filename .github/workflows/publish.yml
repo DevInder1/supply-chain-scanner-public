@@ -21,11 +21,11 @@ jobs:
         run: |
           python -m pip install --upgrade build twine
           python -m build
-          if [ -n "$PYPI_TOKEN" ]; then
-            python -m twine upload dist/* -u __token__ -p "$PYPI_TOKEN"
-          else
-            echo "PYPI_TOKEN secret not configured; skipping upload."
+          if [ -z "$PYPI_TOKEN" ]; then
+            echo "::error::PYPI_TOKEN secret not configured."
+            exit 1
           fi
+          python -m twine upload dist/* -u __token__ -p "$PYPI_TOKEN"
 
   publish-npm:
     runs-on: ubuntu-latest
@@ -40,8 +40,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            npm publish --access public
-          else
-            echo "NPM_TOKEN secret not configured; skipping upload."
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret not configured."
+            exit 1
           fi
+          npm publish --access public

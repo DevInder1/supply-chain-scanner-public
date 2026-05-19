@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 build/
 dist/
+.publish-secrets
 *.egg-info/
 tridentchain_security.egg-info/
 devinder_supply_chain_scanner.egg-info/
