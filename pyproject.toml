@@ -3,14 +3,14 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "devinder-supply-chain-scanner"
+name = "tridentchain-security"
 version = "0.1.0"
-description = "Local-first supply chain vulnerability scanner for project, system, and extensions."
+description = "TridentChain Security — local-first supply chain vulnerability scanner for project, system, and extensions."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [
-  { name = "Supply Chain Scanner Contributors" }
+  { name = "TridentChain Security Contributors" }
 ]
 dependencies = [
   "requests>=2.31.0",
@@ -33,7 +33,7 @@ Homepage = "https://github.com/DevInder1/supply-chain-scanner-public"
 Repository = "https://github.com/DevInder1/supply-chain-scanner-public"
 
 [project.scripts]
-supply-chain-scanner = "scanner.main:main"
+tridentchain-security = "scanner.main:main"
 
 [tool.setuptools]
 include-package-data = true

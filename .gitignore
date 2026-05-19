@@ -9,6 +9,7 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+tridentchain_security.egg-info/
 devinder_supply_chain_scanner.egg-info/
 supply_chain_scanner.egg-info/
 

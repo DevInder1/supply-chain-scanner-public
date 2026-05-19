@@ -1,11 +1,11 @@
 {
-  "name": "@devinder1/supply-chain-scanner-cli",
+  "name": "@tridentchain/security-cli",
   "version": "0.1.0",
-  "description": "Node wrapper for the Supply Chain Scanner Python CLI",
+  "description": "Node wrapper for TridentChain Security Python CLI",
   "license": "MIT",
   "type": "commonjs",
   "bin": {
-    "supply-chain-scanner": "./bin/supply-chain-scanner.js"
+    "tridentchain-security": "./bin/tridentchain-security.js"
   },
   "files": [
     "bin",

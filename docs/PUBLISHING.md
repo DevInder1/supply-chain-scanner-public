@@ -4,12 +4,10 @@
 
 | Ecosystem | Name | Install command |
 |-----------|------|-----------------|
-| PyPI | `devinder-supply-chain-scanner` | `pip install devinder-supply-chain-scanner` |
-| npm | `@devinder1/supply-chain-scanner-cli` | `npm install -g @devinder1/supply-chain-scanner-cli` |
+| PyPI | `tridentchain-security` | `pip install tridentchain-security` |
+| npm | `@tridentchain/security-cli` | `npm install -g @tridentchain/security-cli` |
 
-CLI command after install: `supply-chain-scanner`
-
-> Note: `supply-chain-scanner` on PyPI is already used by another project, so this repo publishes under `devinder-supply-chain-scanner`.
+CLI command after install: `tridentchain-security`
 
 ## One-time setup
 
@@ -28,6 +26,8 @@ export PYPI_TOKEN='pypi-...'
 ```bash
 npm login
 ```
+
+Create the `@tridentchain` npm organization (or scope) if it does not exist yet.
 
 ## Build artifacts
 
@@ -59,9 +59,9 @@ cd npm-wrapper && npm publish --access public
 ## Verify
 
 ```bash
-pip install devinder-supply-chain-scanner
-supply-chain-scanner --help
+pip install tridentchain-security
+tridentchain-security --help
 
-npm install -g @devinder1/supply-chain-scanner-cli
-supply-chain-scanner --help
+npm install -g @tridentchain/security-cli
+tridentchain-security --help
 ```

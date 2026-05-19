@@ -1,18 +1,16 @@
-# @devinder1/supply-chain-scanner-cli
+# @tridentchain/security-cli
 
-Node.js wrapper for the Python Supply Chain Scanner.
+Node.js wrapper for **TridentChain Security** (Python CLI).
 
 ## Install
 
 ```bash
-pip install devinder-supply-chain-scanner
-npm install -g @devinder1/supply-chain-scanner-cli
+pip install tridentchain-security
+npm install -g @tridentchain/security-cli
 ```
 
-## Usage
+## Use
 
 ```bash
-supply-chain-scanner --scan all --project-path . --output-dir scanner-output
+tridentchain-security --scan all --project-path . --output-dir scanner-output
 ```
-
-Forwards all arguments to `python -m scanner.main`.

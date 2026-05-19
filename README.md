@@ -1,4 +1,4 @@
-# Supply Chain Scanner
+# TridentChain Security
 
 Local-first vulnerability scanner for project dependencies, developer tools, and IDE extensions.  
 Uses multi-source intelligence (OSV, NVD, GHSA, Sonatype) with KEV/EPSS prioritization.
@@ -14,11 +14,11 @@ Public repo: https://github.com/DevInder1/supply-chain-scanner-public
 ### Python (recommended)
 
 ```bash
-pip install devinder-supply-chain-scanner
+pip install tridentchain-security
 ```
 
 ```bash
-supply-chain-scanner --scan all --project-path . --output-dir scanner-output
+tridentchain-security --scan all --project-path . --output-dir scanner-output
 ```
 
 ### npm (Node wrapper)
@@ -26,11 +26,11 @@ supply-chain-scanner --scan all --project-path . --output-dir scanner-output
 Requires Python 3.10+ and the pip package above.
 
 ```bash
-npm install -g @devinder1/supply-chain-scanner-cli
+npm install -g @tridentchain/security-cli
 ```
 
 ```bash
-supply-chain-scanner --scan project --project-path .
+tridentchain-security --scan project --project-path .
 ```
 
 ---
@@ -78,7 +78,7 @@ npm run start
 git clone https://github.com/DevInder1/supply-chain-scanner-public.git
 cd supply-chain-scanner-public
 python3 -m pip install -e .
-supply-chain-scanner --help
+tridentchain-security --help
 python3 -m unittest scanner.tests.test_matcher_ranges -v
 ```
 

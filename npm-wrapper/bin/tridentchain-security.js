@@ -2,7 +2,7 @@
 
 const { spawnSync } = require("child_process");
 
-const PIP_PACKAGE = "devinder-supply-chain-scanner";
+const PIP_PACKAGE = "tridentchain-security";
 
 function resolvePython() {
   const candidates = process.platform === "win32" ? ["python", "py"] : ["python3", "python"];

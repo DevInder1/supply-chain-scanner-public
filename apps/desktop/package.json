@@ -1,5 +1,5 @@
 {
-  "name": "supply-chain-scanner-desktop",
+  "name": "tridentchain-security-desktop",
   "version": "0.1.0",
   "description": "Electron shell for local supply-chain scanner",
   "main": "src/main/main.js",
@@ -21,7 +21,7 @@
   },
   "build": {
     "appId": "com.scanner.desktop",
-    "productName": "Supply Chain Scanner",
+    "productName": "TridentChain Security",
     "files": [
       "src/**/*",
       "package.json"

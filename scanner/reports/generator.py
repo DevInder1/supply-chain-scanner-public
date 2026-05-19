@@ -729,7 +729,7 @@ code{{font-size:0.82rem;background:var(--surface2);padding:2px 6px;border-radius
   </div>
 
   <div class="footer">
-    Supply Chain Scanner · Local-first vulnerability intelligence · {escape(generated_at)}
+    TridentChain Security · Local-first vulnerability intelligence · {escape(generated_at)}
   </div>
 </div>
 <script>
@@ -1212,7 +1212,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   <!-- Vulnerability Cards -->
   {''.join(cards) or '<div class="comp-card"><p style="color:var(--muted)">No vulnerabilities found.</p></div>'}
 
-  <div class="footer">Supply Chain Scanner · {escape(generated_at)}</div>
+  <div class="footer">TridentChain Security · {escape(generated_at)}</div>
 </div>
 <script>
 (function(){{
@@ -1780,7 +1780,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 
   {''.join(cards) or '<div class="comp-card"><p style="color:var(--muted)">No vulnerabilities found.</p></div>'}
 
-  <div class="footer">Supply Chain Scanner — Combined Report · {escape(generated_at)}</div>
+  <div class="footer">TridentChain Security — Combined Report · {escape(generated_at)}</div>
 </div>
 <script>
 (function(){{
