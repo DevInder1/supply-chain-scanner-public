@@ -27,7 +27,8 @@ export PYPI_TOKEN='pypi-...'
 npm login
 ```
 
-Create the `@tridentchain` npm organization (or scope) if it does not exist yet.
+Create the `@tridentchain` npm organization on the website (required before first publish).  
+Step-by-step: [scripts/setup-npm-tridentchain-org.md](../scripts/setup-npm-tridentchain-org.md)
 
 ## Build artifacts
 
