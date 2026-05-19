@@ -13,7 +13,7 @@ if [[ -z "${PYPI_TOKEN:-}" ]]; then
   exit 1
 fi
 echo "Publishing to PyPI..."
-python3 -m twine upload dist/* -u __token__ -p "$PYPI_TOKEN"
+python3 -m twine upload --skip-existing dist/tridentchain_security-* -u __token__ -p "$PYPI_TOKEN"
 
 echo "Publishing npm wrapper..."
 cd npm-wrapper

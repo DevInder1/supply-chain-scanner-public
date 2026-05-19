@@ -1,7 +1,8 @@
 const path = require("path");
 const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 
 let activeScanChild = null;
 /** Absolute dirs allowed for opening reports (last successful scan output + defaults). */
@@ -59,22 +60,23 @@ function hasSupportedManifest(targetDir) {
 }
 
 function findProjectPath() {
-  const repoRoot = resolveRepoRoot();
-  if (hasSupportedManifest(repoRoot)) {
+  if (!app.isPackaged && hasRepoScanner()) {
+    const repoRoot = resolveRepoRoot();
+    if (hasSupportedManifest(repoRoot)) {
+      return repoRoot;
+    }
+    const children = fs.readdirSync(repoRoot, { withFileTypes: true });
+    for (const child of children) {
+      if (!child.isDirectory()) continue;
+      if (child.name.startsWith(".") || child.name === "node_modules") continue;
+      const childPath = path.join(repoRoot, child.name);
+      if (hasSupportedManifest(childPath)) {
+        return childPath;
+      }
+    }
     return repoRoot;
   }
-
-  // Prefer shallow children for startup speed.
-  const children = fs.readdirSync(repoRoot, { withFileTypes: true });
-  for (const child of children) {
-    if (!child.isDirectory()) continue;
-    if (child.name.startsWith(".") || child.name === "node_modules") continue;
-    const childPath = path.join(repoRoot, child.name);
-    if (hasSupportedManifest(childPath)) {
-      return childPath;
-    }
-  }
-  return repoRoot;
+  return os.homedir();
 }
 
 function resolveScannerCwd() {
@@ -82,7 +84,75 @@ function resolveScannerCwd() {
   if (fs.existsSync(path.join(bundledScannerRoot, "scanner", "main.py"))) {
     return bundledScannerRoot;
   }
-  return resolveRepoRoot();
+  const repoMain = path.join(resolveRepoRoot(), "scanner", "main.py");
+  if (!app.isPackaged && fs.existsSync(repoMain)) {
+    return resolveRepoRoot();
+  }
+  return process.cwd() || os.homedir();
+}
+
+function commandOnPath(command) {
+  try {
+    const probe = process.platform === "win32" ? `where ${command}` : `which ${command}`;
+    execSync(probe, { stdio: "ignore" });
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
+function hasRepoScanner() {
+  return fs.existsSync(path.join(resolveRepoRoot(), "scanner", "main.py"));
+}
+
+/** CLI flags only (no python -m scanner.main). */
+function buildScannerCliArgs(profile) {
+  const args = ["--run-profile", profile.runProfile, "--scan", profile.scan];
+  if (profile.projectPath) args.push("--project-path", profile.projectPath);
+  if (profile.offline) args.push("--offline");
+  if (profile.outputDir) args.push("--output-dir", profile.outputDir);
+  return args;
+}
+
+/**
+ * Resolve how to launch the scanner:
+ * 1) bundled runtime (packaged)
+ * 2) repo dev checkout
+ * 3) pip/npm installed `tridentchain-security` on PATH (no clone)
+ * 4) python3 -m scanner.main from installed package
+ */
+function resolveScannerLaunch(profile) {
+  const cliArgs = buildScannerCliArgs(profile);
+  const bundledPython = process.platform === "win32"
+    ? path.join(process.resourcesPath, "runtime", "python", "python.exe")
+    : path.join(process.resourcesPath, "runtime", "python", "bin", "python3");
+  const bundledScannerRoot = path.join(process.resourcesPath, "runtime", "scanner");
+  if (fs.existsSync(bundledPython) && fs.existsSync(path.join(bundledScannerRoot, "scanner", "main.py"))) {
+    return {
+      command: bundledPython,
+      args: ["-m", "scanner.main", ...cliArgs],
+      cwd: bundledScannerRoot
+    };
+  }
+  if (!app.isPackaged && hasRepoScanner()) {
+    return {
+      command: resolvePythonCommand(),
+      args: ["-m", "scanner.main", ...cliArgs],
+      cwd: resolveRepoRoot()
+    };
+  }
+  if (commandOnPath("tridentchain-security")) {
+    return {
+      command: "tridentchain-security",
+      args: cliArgs,
+      cwd: process.cwd() || os.homedir()
+    };
+  }
+  return {
+    command: resolvePythonCommand(),
+    args: ["-m", "scanner.main", ...cliArgs],
+    cwd: process.cwd() || os.homedir()
+  };
 }
 
 function loadRepoEnv() {
@@ -113,11 +183,7 @@ function loadRepoEnv() {
 }
 
 function createScannerArgs(profile) {
-  const args = ["-m", "scanner.main", "--run-profile", profile.runProfile, "--scan", profile.scan];
-  if (profile.projectPath) args.push("--project-path", profile.projectPath);
-  if (profile.offline) args.push("--offline");
-  if (profile.outputDir) args.push("--output-dir", profile.outputDir);
-  return args;
+  return ["-m", "scanner.main", ...buildScannerCliArgs(profile)];
 }
 
 function profileWithRules(profile) {
@@ -175,9 +241,8 @@ function isSafeReportPath(targetPath) {
 }
 
 ipcMain.handle("scanner:buildCommand", async (_, profile) => {
-  const python = resolvePythonCommand();
-  const args = createScannerArgs(profileWithRules(profile));
-  return `${python} ${args.map((part) => (part.includes(" ") ? `"${part}"` : part)).join(" ")}`;
+  const launch = resolveScannerLaunch(profileWithRules(profile));
+  return `${launch.command} ${launch.args.map((part) => (part.includes(" ") ? `"${part}"` : part)).join(" ")}`;
 });
 
 ipcMain.handle("scanner:detectProjectPath", async () => {
@@ -186,9 +251,7 @@ ipcMain.handle("scanner:detectProjectPath", async () => {
 
 ipcMain.handle("scanner:run", async (_, profile) => {
   const normalizedProfile = profileWithRules(profile);
-  const python = resolvePythonCommand();
-  const args = createScannerArgs(normalizedProfile);
-  const cwd = resolveScannerCwd();
+  const launch = resolveScannerLaunch(normalizedProfile);
   const env = loadRepoEnv();
 
   if (requiresProjectManifest(normalizedProfile.scan)) {
@@ -230,7 +293,7 @@ ipcMain.handle("scanner:run", async (_, profile) => {
       }
     }
 
-    const child = spawn(python, args, { cwd, env, shell: false });
+    const child = spawn(launch.command, launch.args, { cwd: launch.cwd, env, shell: false });
     activeScanChild = child;
     let stdout = "";
     let stderr = "";

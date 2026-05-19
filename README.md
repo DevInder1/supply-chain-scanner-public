@@ -53,13 +53,20 @@ print(summary["summary"])
 
 ---
 
-## Desktop app
+## Desktop app (individual application)
+
+No repo clone required if the pip package is installed:
 
 ```bash
-cd apps/desktop
-npm install
-npm run start
+pip3 install tridentchain-security
+cd apps/desktop && npm install && npm run start
 ```
+
+See [apps/desktop/README.md](apps/desktop/README.md) and [docs/DISTRIBUTION_VERIFICATION.md](docs/DISTRIBUTION_VERIFICATION.md).
+
+## AI / automation
+
+Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md).
 
 ---
 

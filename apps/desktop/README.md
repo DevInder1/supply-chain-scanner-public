@@ -1,31 +1,56 @@
-# Desktop App (Electron)
+# TridentChain Security Desktop
 
-This app wraps the scanner CLI with:
+Electron UI for TridentChain Security — run scans without using the terminal.
 
-- command builder
-- one-click scan execution
-- live log streaming
-- JSON/HTML result access
+## Two ways to run (no full repo clone required)
 
-## Local Development
+### A) End user (recommended)
 
-From `apps/desktop`:
+Install the published scanner, then run only the desktop app:
 
-1. `npm install`
-2. `npm run start`
+```bash
+pip3 install tridentchain-security
+cd apps/desktop
+npm install
+npm run start
+```
 
-The app runs the scanner from repo root using:
+The app uses `tridentchain-security` from your PATH. Pick any project folder to scan.
 
-- `python -m scanner.main ...`
+### B) Developer (monorepo)
 
-In packaged builds, a bundled Python runtime is preferred automatically.
+```bash
+git clone https://github.com/DevInder1/supply-chain-scanner-public.git
+cd supply-chain-scanner-public
+pip3 install -e .
+cd apps/desktop && npm install && npm run start
+```
 
-## API keys (no UI entry required)
+## Features
 
-Do not paste secrets in the app. Keep keys locally via environment variables:
+- Scan profiles: Recommended (public), Quick, Power-user, Offline
+- Live log streaming and HTML/JSON report links
+- Optional API keys via environment (never stored in the UI)
+
+## API keys
+
+Set locally (not in the app UI):
 
 - `NVD_API_KEY`
 - `GITHUB_TOKEN`
 - `SONATYPE_TOKEN` (optional)
 
-You can also place them in a repo-root `.env` file. The scanner reads `.env` automatically.
+Or place them in a `.env` file next to the app executable (packaged) or in your home directory.
+
+## Build installer (optional)
+
+```bash
+python3 packaging/scripts/bundle_scanner_runtime.py --target macos
+cd apps/desktop && npm run dist
+```
+
+See [packaging/README.md](../../packaging/README.md).
+
+## AI integration
+
+Agents can use the same engine via CLI or Python API without this desktop app. See [docs/AI_INTEGRATION.md](../../docs/AI_INTEGRATION.md).

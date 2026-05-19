@@ -1,5 +1,6 @@
 # Environment secrets
 .env
+.vscode/
 
 # Python
 __pycache__/
@@ -25,6 +26,7 @@ scanner/desktop-validation/
 apps/desktop/node_modules/
 apps/desktop/dist/
 apps/desktop/release/
+apps/desktop/scanner/
 
 # NPM wrapper artifacts
 npm-wrapper/node_modules/
