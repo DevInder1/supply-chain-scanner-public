@@ -111,5 +111,6 @@ No repo clone required if the pip package is installed.
 ## Related
 
 - [INSTALL_AND_USE.md](INSTALL_AND_USE.md)
+- [CROSS_PLATFORM.md](CROSS_PLATFORM.md)
 - [cli-contract.md](cli-contract.md)
 - [DISTRIBUTION_VERIFICATION.md](DISTRIBUTION_VERIFICATION.md)

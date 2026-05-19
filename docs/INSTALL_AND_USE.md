@@ -21,6 +21,8 @@ After install, both paths expose the same command: **`tridentchain-security`**.
 
 On macOS with Homebrew Python, prefer `pip3` or `python3 -m pip` instead of a broken legacy `pip` shim.
 
+**Platform-specific install commands:** see [CROSS_PLATFORM.md](CROSS_PLATFORM.md).
+
 ---
 
 ## Step 1 — Install the Python package (core)
@@ -226,5 +228,6 @@ npm uninstall -g @tridentchain/security-cli
 ## Related docs
 
 - [README](../README.md) — project overview
+- [Cross-platform](CROSS_PLATFORM.md) — macOS, Linux, Windows install and parity
 - [Publishing](PUBLISHING.md) — maintainers: PyPI/npm release
 - [CLI contract](cli-contract.md) — stable CLI flags for integrations

@@ -18,6 +18,7 @@ tridentchain-security --help
 ```
 
 Full guide: **[docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md)**  
+Cross-platform (macOS / Linux / Windows): **[docs/CROSS_PLATFORM.md](docs/CROSS_PLATFORM.md)**  
 (PyPI: [tridentchain-security](https://pypi.org/project/tridentchain-security/) · npm: [@tridentchain/security-cli](https://www.npmjs.com/package/@tridentchain/security-cli))
 
 ```bash
@@ -81,6 +82,7 @@ python3 -m unittest scanner.tests.test_matcher_ranges -v
 ```
 
 Install & use: `docs/INSTALL_AND_USE.md`  
+Cross-platform: `docs/CROSS_PLATFORM.md`  
 CLI contract: `docs/cli-contract.md`  
 Publishing: `docs/PUBLISHING.md`
 
