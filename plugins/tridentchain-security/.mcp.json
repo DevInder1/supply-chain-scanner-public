@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "tridentchain-mcp",
+      "args": []
+    }
+  }
+}

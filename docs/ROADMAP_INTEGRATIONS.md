@@ -27,13 +27,13 @@ Goal: **keep `pip install tridentchain-security` + `tridentchain-security` CLI a
 
 ## Phase 2 — Claude (official path)
 
-| Deliverable | Description |
-|-------------|-------------|
-| `tridentchain-mcp` | PyPI package; stdio MCP; wraps `execute_tool` |
-| Plugin repo | Skills + connector; GitHub distribution |
-| Docs | Claude Desktop `mcp.json` example |
+- [x] `tridentchain-mcp` — PyPI-ready package; stdio MCP; wraps `execute_tool`
+- [x] Plugin — `plugins/tridentchain-security/` (skills + `.mcp.json`)
+- [x] Docs — [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md)
 
-**Outcome:** Install MCP + plugin → Claude scans workspace without clone.
+**Outcome:** Install MCP + plugin → Claude scans workspace without clone. Publish `tridentchain-mcp` to PyPI when ready.
+
+**CLI unchanged:** `tridentchain-security` on PyPI remains the universal fallback.
 
 ---
 

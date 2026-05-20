@@ -12,15 +12,24 @@ if [[ -f "$SECRETS_FILE" ]]; then
   set +a
 fi
 
-if [[ -z "${PYPI_TOKEN:-}" || -z "${NPM_TOKEN:-}" ]]; then
-  echo "Missing PYPI_TOKEN or NPM_TOKEN."
+if [[ -z "${PYPI_TOKEN:-}" ]]; then
+  echo "Missing PYPI_TOKEN."
   echo "Create $SECRETS_FILE with:"
   echo '  PYPI_TOKEN=pypi-...'
-  echo '  NPM_TOKEN=npm_...'
   exit 1
 fi
 
-export PYPI_TOKEN NPM_TOKEN
+# Default: PyPI only (0.1.1 + tridentchain-mcp). npm stays at 0.1.0 unless PUBLISH_NPM=1.
+export PYPI_TOKEN
+export PUBLISH_NPM="${PUBLISH_NPM:-0}"
+if [[ "$PUBLISH_NPM" == "1" ]]; then
+  if [[ -z "${NPM_TOKEN:-}" ]]; then
+    echo "PUBLISH_NPM=1 requires NPM_TOKEN in $SECRETS_FILE"
+    exit 1
+  fi
+  export NPM_TOKEN
+fi
+
 "$ROOT/scripts/publish-packages.sh"
 
 # Optional: store in GitHub Actions for CI publishes

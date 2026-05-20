@@ -225,9 +225,23 @@ npm uninstall -g @tridentchain/security-cli
 
 ---
 
+## Optional: Claude / MCP (Phase 2)
+
+The pip CLI above is unchanged. For Claude Desktop, Claude Code, or Cursor MCP:
+
+```bash
+pip3 install "tridentchain-security>=0.1.1"
+pip3 install tridentchain-mcp
+```
+
+See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
+
+---
+
 ## Related docs
 
 - [README](../README.md) — project overview
 - [Cross-platform](CROSS_PLATFORM.md) — macOS, Linux, Windows install and parity
+- [Claude MCP setup](CLAUDE_MCP_SETUP.md) — Phase 2 MCP + plugin
 - [Publishing](PUBLISHING.md) — maintainers: PyPI/npm release
 - [CLI contract](cli-contract.md) — stable CLI flags for integrations

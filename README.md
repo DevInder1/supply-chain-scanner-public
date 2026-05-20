@@ -71,7 +71,9 @@ Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI
 
 **Integration architecture** (Claude MCP, OpenAI, Cursor, VS Code): [docs/INTEGRATION_ARCHITECTURE.md](docs/INTEGRATION_ARCHITECTURE.md) · [Roadmap](docs/ROADMAP_INTEGRATIONS.md)
 
-Unified tool layer (for adapters): `from scanner.integrations import execute_tool, get_tool_definitions`
+**Phase 2 — Claude MCP:** `pip install tridentchain-mcp` · [Setup guide](docs/CLAUDE_MCP_SETUP.md) · [Plugin](plugins/tridentchain-security/)
+
+Unified tool layer: `from scanner.integrations import execute_tool, get_tool_definitions`
 
 ---
 

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tridentchain-mcp"
+version = "0.1.0"
+description = "MCP server for TridentChain Security — Claude, Cursor, and other MCP hosts"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "TridentChain Security Contributors" }
+]
+dependencies = [
+  "tridentchain-security>=0.1.1",
+  "mcp>=1.0.0",
+]
+keywords = ["mcp", "security", "supply-chain", "claude", "cursor"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+
+[project.urls]
+Homepage = "https://github.com/DevInder1/supply-chain-scanner-public"
+Repository = "https://github.com/DevInder1/supply-chain-scanner-public"
+
+[project.scripts]
+tridentchain-mcp = "tridentchain_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

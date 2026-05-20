@@ -5,9 +5,11 @@
 | Ecosystem | Name | Install command |
 |-----------|------|-----------------|
 | PyPI | `tridentchain-security` | `pip install tridentchain-security` |
+| PyPI | `tridentchain-mcp` | `pip install tridentchain-mcp` (Phase 2; requires `tridentchain-security>=0.1.1`) |
 | npm | `@tridentchain/security-cli` | `npm install -g @tridentchain/security-cli` |
 
-CLI command after install: `tridentchain-security`
+CLI command after install: `tridentchain-security` (unchanged)  
+MCP server (Phase 2): `tridentchain-mcp`
 
 ## One-time setup
 
@@ -35,6 +37,7 @@ Step-by-step: [scripts/setup-npm-tridentchain-org.md](../scripts/setup-npm-tride
 ```bash
 python3 -m pip install --upgrade build twine
 python3 -m build
+cd tridentchain-mcp && python3 -m build && cd ..
 ```
 
 npm wrapper:
@@ -47,13 +50,22 @@ npm pack
 ## Publish
 
 ```bash
+# PyPI only (recommended for Phase 2 — leaves npm @0.1.0 unchanged)
+./scripts/publish-now.sh
+
+# Or with tokens exported:
+export PYPI_TOKEN='pypi-...'
 ./scripts/publish-packages.sh
+
+# npm only when you bump npm-wrapper/package.json version:
+PUBLISH_NPM=1 NPM_TOKEN='npm_...' ./scripts/publish-packages.sh
 ```
 
 Or manually:
 
 ```bash
-python3 -m twine upload dist/*
+python3 -m twine upload dist/tridentchain_security-*
+python3 -m twine upload tridentchain-mcp/dist/tridentchain_mcp-*
 cd npm-wrapper && npm publish --access public
 ```
 
@@ -62,6 +74,9 @@ cd npm-wrapper && npm publish --access public
 ```bash
 pip install tridentchain-security
 tridentchain-security --help
+
+pip install tridentchain-mcp
+python3 -c "from tridentchain_mcp.server import mcp; print(mcp.name)"
 
 npm install -g @tridentchain/security-cli
 tridentchain-security --help

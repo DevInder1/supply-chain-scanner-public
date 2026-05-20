@@ -12,6 +12,8 @@ dist/
 .publish-secrets
 *.egg-info/
 tridentchain_security.egg-info/
+tridentchain_mcp.egg-info/
+tridentchain-mcp/dist/
 devinder_supply_chain_scanner.egg-info/
 supply_chain_scanner.egg-info/
 
