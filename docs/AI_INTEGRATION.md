@@ -106,7 +106,19 @@ See [CURSOR_SETUP.md](CURSOR_SETUP.md). CLI fallback: same as Option A.
 
 ---
 
-## Option E — Desktop app (human + AI hybrid)
+## Option E — VS Code extension (Anthropic MCP path)
+
+1. `pip3 install tridentchain-security tridentchain-mcp`
+2. Install / run [extensions/vscode-tridentchain/](../extensions/vscode-tridentchain/)
+3. Command palette → **TridentChain: Scan Workspace**
+
+Extension prefers `tridentchain-mcp` (same stdio server as Claude), falls back to CLI.
+
+See [VSCODE_SETUP.md](VSCODE_SETUP.md).
+
+---
+
+## Option F — Desktop app (human + AI hybrid)
 
 1. `pip3 install tridentchain-security`
 2. `cd apps/desktop && npm install && npm run start`
@@ -136,6 +148,7 @@ No repo clone required if the pip package is installed.
 
 ## Related
 
+- [VSCODE_SETUP.md](VSCODE_SETUP.md) — Phase 4 VS Code (MCP-first)
 - [CURSOR_SETUP.md](CURSOR_SETUP.md) — Phase 3 Cursor MCP
 - [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md) — Phase 2 Claude
 - [INSTALL_AND_USE.md](INSTALL_AND_USE.md)

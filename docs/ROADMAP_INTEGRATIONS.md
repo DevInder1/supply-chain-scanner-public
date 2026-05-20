@@ -50,9 +50,13 @@ Goal: **keep `pip install tridentchain-security` + `tridentchain-security` CLI a
 
 ## Phase 4 — VS Code extension
 
-- Command palette: “TridentChain: Scan workspace”
-- Problems panel / webview for findings
-- Uses `run_scan()` or MCP client to local server
+- [x] Extension — `extensions/vscode-tridentchain/` (MCP-first, CLI fallback)
+- [x] Commands — scan workspace / project, open report, validate after patch
+- [x] Problems panel + findings webview
+- [x] Workspace MCP example — `integrations/vscode/mcp.json.example`
+- [x] Docs — [VSCODE_SETUP.md](VSCODE_SETUP.md) (Anthropic-aligned path)
+
+**Outcome:** Same local `tridentchain-mcp` server as Claude/Cursor; no duplicate scan engine.
 
 ---
 

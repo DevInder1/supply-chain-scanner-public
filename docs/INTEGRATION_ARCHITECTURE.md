@@ -65,7 +65,7 @@ See `scanner/integrations/unified.py`.
 | **Claude Plugin** | Skills + connector ref | Live (`plugins/tridentchain-security/`) |
 | **OpenAI** | Chat Completions tools / Agents SDK | Live (`examples/openai/`, `openai_adapter`) |
 | **Cursor** | MCP + project rules + CLI | Live ([CURSOR_SETUP.md](CURSOR_SETUP.md)) |
-| **VS Code** | Extension calling unified layer | Planned |
+| **VS Code** | Extension → local MCP + CLI fallback | Live ([VSCODE_SETUP.md](VSCODE_SETUP.md)) |
 | **Daybreak-style** | Detect → patch → `validate_after_patch` | Planned (two-scan diff) |
 
 ---
@@ -101,6 +101,18 @@ No separate business logic.
 | **Today** | Project rule + `tridentchain-security` CLI |
 | **Next** | MCP server in `.cursor/mcp.json` |
 | **Fallback** | Always CLI if MCP unavailable |
+
+---
+
+## VS Code path (Anthropic-aligned)
+
+| Mode | Setup |
+|------|--------|
+| **Primary** | Extension → stdio `tridentchain-mcp` → `execute_tool` |
+| **Workspace MCP** | `integrations/vscode/mcp.json.example` → `.vscode/mcp.json` |
+| **Fallback** | Extension → `tridentchain-security` CLI |
+
+Same MCP server name (`tridentchain`) and tool names as Claude Desktop and the Claude plugin `.mcp.json`.
 
 ---
 

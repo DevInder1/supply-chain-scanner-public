@@ -240,6 +240,7 @@ See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
 
 - Cursor: [CURSOR_SETUP.md](CURSOR_SETUP.md) (MCP + `.cursor/rules/tridentchain.mdc`)
 - OpenAI: [examples/openai/](../examples/openai/)
+- VS Code: [VSCODE_SETUP.md](VSCODE_SETUP.md) (extension + MCP)
 
 ---
 
@@ -249,5 +250,6 @@ See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
 - [Cross-platform](CROSS_PLATFORM.md) — macOS, Linux, Windows install and parity
 - [Claude MCP setup](CLAUDE_MCP_SETUP.md) — Phase 2 MCP + plugin
 - [Cursor setup](CURSOR_SETUP.md) — Phase 3 MCP + rules
+- [VS Code setup](VSCODE_SETUP.md) — Phase 4 extension (MCP-first)
 - [Publishing](PUBLISHING.md) — maintainers: PyPI/npm release
 - [CLI contract](cli-contract.md) — stable CLI flags for integrations

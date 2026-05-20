@@ -33,3 +33,8 @@ apps/desktop/scanner/
 # NPM wrapper artifacts
 npm-wrapper/node_modules/
 npm-wrapper/*.tgz
+
+# VS Code extension (Phase 4)
+extensions/vscode-tridentchain/node_modules/
+extensions/vscode-tridentchain/out/
+extensions/vscode-tridentchain/*.vsix

@@ -1,0 +1,99 @@
+{
+  "name": "tridentchain-security",
+  "displayName": "TridentChain Security",
+  "description": "Supply-chain vulnerability scanning via Anthropic-aligned local MCP (tridentchain-mcp) with CLI fallback",
+  "version": "0.1.0",
+  "publisher": "tridentchain",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevInder1/supply-chain-scanner-public.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onCommand:tridentchain.scanWorkspace",
+    "onCommand:tridentchain.scanProject",
+    "onCommand:tridentchain.showReport",
+    "onCommand:tridentchain.validateFixes"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tridentchain.scanWorkspace",
+        "title": "TridentChain: Scan Workspace (Full)",
+        "category": "TridentChain"
+      },
+      {
+        "command": "tridentchain.scanProject",
+        "title": "TridentChain: Scan Project Dependencies",
+        "category": "TridentChain"
+      },
+      {
+        "command": "tridentchain.showReport",
+        "title": "TridentChain: Open Scan Report",
+        "category": "TridentChain"
+      },
+      {
+        "command": "tridentchain.validateFixes",
+        "title": "TridentChain: Validate After Patch",
+        "category": "TridentChain"
+      }
+    ],
+    "configuration": {
+      "title": "TridentChain Security",
+      "properties": {
+        "tridentchain.preferMcp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer local tridentchain-mcp stdio server (Anthropic MCP path). Falls back to tridentchain-security CLI."
+        },
+        "tridentchain.mcp.command": {
+          "type": "string",
+          "default": "tridentchain-mcp",
+          "description": "MCP server command (same as Claude Desktop / Cursor .mcp.json)."
+        },
+        "tridentchain.cli.command": {
+          "type": "string",
+          "default": "tridentchain-security",
+          "description": "CLI fallback when MCP is unavailable."
+        },
+        "tridentchain.outputDir": {
+          "type": "string",
+          "default": ".tridentchain-out",
+          "description": "Relative output directory for scan reports (under workspace root)."
+        },
+        "tridentchain.runProfile": {
+          "type": "string",
+          "enum": [
+            "quick",
+            "full",
+            "offline"
+          ],
+          "default": "full",
+          "description": "Scan profile passed to MCP tools or CLI."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
