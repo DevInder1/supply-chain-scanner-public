@@ -61,10 +61,10 @@ See `scanner/integrations/unified.py`.
 | Platform | Adapter type | Status |
 |----------|--------------|--------|
 | **pip / shell** | CLI | Live |
-| **Claude MCP** | Local stdio MCP → `execute_tool` | Planned (`tridentchain-mcp`) |
-| **Claude Plugin** | Skills + connector ref | Planned (GitHub plugin bundle) |
-| **OpenAI** | Chat Completions tools / Agents SDK | Planned (same schemas) |
-| **Cursor** | MCP or project rules + CLI | Partial (docs + CLI today) |
+| **Claude MCP** | Local stdio MCP → `execute_tool` | Live (`tridentchain-mcp` on PyPI) |
+| **Claude Plugin** | Skills + connector ref | Live (`plugins/tridentchain-security/`) |
+| **OpenAI** | Chat Completions tools / Agents SDK | Live (`examples/openai/`, `openai_adapter`) |
+| **Cursor** | MCP + project rules + CLI | Live ([CURSOR_SETUP.md](CURSOR_SETUP.md)) |
 | **VS Code** | Extension calling unified layer | Planned |
 | **Daybreak-style** | Detect → patch → `validate_after_patch` | Planned (two-scan diff) |
 

@@ -236,6 +236,11 @@ pip3 install tridentchain-mcp
 
 See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
 
+## Optional: Cursor / OpenAI (Phase 3)
+
+- Cursor: [CURSOR_SETUP.md](CURSOR_SETUP.md) (MCP + `.cursor/rules/tridentchain.mdc`)
+- OpenAI: [examples/openai/](../examples/openai/)
+
 ---
 
 ## Related docs
@@ -243,5 +248,6 @@ See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
 - [README](../README.md) — project overview
 - [Cross-platform](CROSS_PLATFORM.md) — macOS, Linux, Windows install and parity
 - [Claude MCP setup](CLAUDE_MCP_SETUP.md) — Phase 2 MCP + plugin
+- [Cursor setup](CURSOR_SETUP.md) — Phase 3 MCP + rules
 - [Publishing](PUBLISHING.md) — maintainers: PyPI/npm release
 - [CLI contract](cli-contract.md) — stable CLI flags for integrations

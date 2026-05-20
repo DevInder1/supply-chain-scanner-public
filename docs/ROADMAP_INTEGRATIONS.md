@@ -39,11 +39,10 @@ Goal: **keep `pip install tridentchain-security` + `tridentchain-security` CLI a
 
 ## Phase 3 — OpenAI + Cursor
 
-| Deliverable | Description |
-|-------------|-------------|
-| OpenAI examples | Register `get_tool_definitions()` in Agents SDK sample |
-| Cursor MCP config | Document `.cursor/mcp.json` |
-| Cursor rule | Optional `.cursor/rules/tridentchain.md` |
+- [x] OpenAI adapter — `scanner.integrations.openai_adapter` (`to_openai_tools`, `run_openai_tool`)
+- [x] Examples — `examples/openai/` (Chat Completions + Agents SDK)
+- [x] Cursor MCP — `.cursor/mcp.json.example` + [CURSOR_SETUP.md](CURSOR_SETUP.md)
+- [x] Cursor rule — `.cursor/rules/tridentchain.mdc`
 
 **Outcome:** Same tools on OpenAI and Cursor; CLI fallback documented.
 

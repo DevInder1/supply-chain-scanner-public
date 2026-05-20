@@ -1,0 +1,41 @@
+---
+description: TridentChain Security — supply-chain vulnerability scanning for this workspace
+globs:
+alwaysApply: false
+---
+
+# TridentChain Security
+
+When the user asks to scan dependencies, check supply-chain risk, or validate fixes after upgrades:
+
+## Preferred: MCP (if configured)
+
+If `tridentchain` MCP is enabled in `.cursor/mcp.json`, use:
+
+- `scan_project` — fast project-only scan
+- `scan_full` — project + system + IDE extensions
+- `validate_after_patch` — compare baseline vs post-patch scan JSON
+
+Install once:
+
+```bash
+pip3 install "tridentchain-security>=0.1.1" tridentchain-mcp
+```
+
+Copy [.cursor/mcp.json.example](../mcp.json.example) to `.cursor/mcp.json` and reload MCP.
+
+## Fallback: CLI (always works)
+
+```bash
+tridentchain-security --scan all --project-path <workspace_root> --output-dir .tridentchain-out
+```
+
+Read `.tridentchain-out/scan-report.json` and HTML reports for details.
+
+## Notes
+
+- No API keys required for the default `full` profile.
+- Use `--run-profile quick` for faster iteration.
+- Do not paste secrets into chat; use environment variables for optional NVD/GitHub keys.
+
+See [docs/CURSOR_SETUP.md](../../docs/CURSOR_SETUP.md) and [docs/AI_INTEGRATION.md](../../docs/AI_INTEGRATION.md).

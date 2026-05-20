@@ -80,7 +80,33 @@ Optional keys (environment or kwargs):
 
 ---
 
-## Option C — Desktop app (human + AI hybrid)
+## Option C — OpenAI (Chat Completions / Agents SDK)
+
+Same tool schemas as MCP via `scanner.integrations`:
+
+```python
+from scanner.integrations import execute_tool, to_openai_tools
+from scanner.integrations.openai_adapter import run_openai_tool
+
+tools = to_openai_tools()  # OpenAI function-calling format
+result = run_openai_tool("scan_project", {"project_path": ".", "output_dir": ".tridentchain-out"})
+```
+
+Runnable examples: [examples/openai/](../examples/openai/) (requires `pip install openai`; Agents sample also needs `openai-agents`).
+
+---
+
+## Option D — Cursor (MCP + rules)
+
+1. `pip3 install tridentchain-security tridentchain-mcp`
+2. Copy `.cursor/mcp.json.example` → `.cursor/mcp.json`
+3. Enable rule `.cursor/rules/tridentchain.mdc` in Cursor
+
+See [CURSOR_SETUP.md](CURSOR_SETUP.md). CLI fallback: same as Option A.
+
+---
+
+## Option E — Desktop app (human + AI hybrid)
 
 1. `pip3 install tridentchain-security`
 2. `cd apps/desktop && npm install && npm run start`
@@ -110,6 +136,8 @@ No repo clone required if the pip package is installed.
 
 ## Related
 
+- [CURSOR_SETUP.md](CURSOR_SETUP.md) — Phase 3 Cursor MCP
+- [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md) — Phase 2 Claude
 - [INSTALL_AND_USE.md](INSTALL_AND_USE.md)
 - [CROSS_PLATFORM.md](CROSS_PLATFORM.md)
 - [cli-contract.md](cli-contract.md)
