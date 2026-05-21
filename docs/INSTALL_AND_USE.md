@@ -47,6 +47,24 @@ python3 -m pip install tridentchain-security
 
 Your `pip` command points at a removed system Python. Use `pip3` or `python3 -m pip` as above.
 
+### Agents, MCP, and validate (recommended ≥0.1.1)
+
+For Claude, Cursor, VS Code, OpenAI tools, and **validate-after-patch**:
+
+```bash
+pip3 install "tridentchain-security>=0.1.1"
+pip3 install tridentchain-mcp
+```
+
+| Package | Purpose |
+|---------|---------|
+| `tridentchain-security>=0.1.1` | Unified tools (`scanner.integrations`), `--validate` CLI |
+| `tridentchain-mcp` | Local stdio MCP (`scan_project`, `scan_full`, `validate_after_patch`) |
+
+**Legacy pin still works:** `pip3 install tridentchain-security==0.1.0` — scan commands only, no MCP integrations.
+
+Full capability list: **[CAPABILITIES.md](CAPABILITIES.md)**.
+
 ---
 
 ## Step 2 — Install the npm wrapper (optional)
@@ -71,7 +89,7 @@ npm install -g @tridentchain/security-cli
 tridentchain-security --help
 ```
 
-You should see usage for `--scan`, `--run-profile`, `--project-path`, `--output-dir`, and related options.
+You should see usage for `--scan`, `--run-profile`, `--project-path`, `--output-dir`, and (≥0.1.1) `--validate`.
 
 Quick version check:
 
@@ -141,6 +159,18 @@ tridentchain-security --scan all --project-path . --run-profile quick --output-d
 ```bash
 tridentchain-security --scan project --project-path . --run-profile offline --output-dir scanner-output
 ```
+
+### Validate after dependency upgrades (≥0.1.1)
+
+```bash
+cp scanner-output/scan-report.json scanner-output/baseline.json
+# upgrade dependencies, then scan again into scanner-output/
+tridentchain-security --validate \
+  --baseline-report scanner-output/baseline.json \
+  --after-report scanner-output/scan-report.json
+```
+
+Or use MCP tool `validate_after_patch` via `tridentchain-mcp`. See [CAPABILITIES.md](CAPABILITIES.md).
 
 ---
 
@@ -246,6 +276,7 @@ See [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md).
 
 ## Related docs
 
+- [CAPABILITIES.md](CAPABILITIES.md) — everything you can do with CLI, MCP, and agents
 - [README](../README.md) — project overview
 - [Cross-platform](CROSS_PLATFORM.md) — macOS, Linux, Windows install and parity
 - [Claude MCP setup](CLAUDE_MCP_SETUP.md) — Phase 2 MCP + plugin

@@ -20,6 +20,21 @@ This document defines the stable command contract used by the desktop app.
 - `--offline`
 - `--nvd-api-key <key>`
 - `--github-token <token>`
+- `--validate` (≥0.1.1) — compare two reports; no scan
+- `--baseline-report <path>` — baseline JSON (with `--validate`)
+- `--after-report <path>` — after-patch JSON (with `--validate`)
+
+## Validate Mode (Phase 5)
+
+When `--validate` is set, the CLI does **not** run a scan. It loads two JSON files and prints a diff payload:
+
+```bash
+tridentchain-security --validate \
+  --baseline-report .tridentchain-out/baseline.json \
+  --after-report .tridentchain-out/scan-report.json
+```
+
+Accepted inputs: stdout summary JSON (`affected_components`) or full `scan-report.json` (`vulnerabilities`).
 
 ## Run Profile Semantics
 

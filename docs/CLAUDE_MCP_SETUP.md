@@ -7,9 +7,13 @@ TridentChain Security Phase 2 adds **`tridentchain-mcp`** and a **Claude plugin*
 ## 1. Install
 
 ```bash
-pip3 install tridentchain-security>=0.1.1
+pip3 install "tridentchain-security>=0.1.1"
 pip3 install tridentchain-mcp
 ```
+
+`tridentchain-mcp` depends on `tridentchain-security>=0.1.1`. Older `0.1.0` scans still work but cannot use MCP integrations.
+
+See [CAPABILITIES.md](CAPABILITIES.md) for all tools and validate workflow.
 
 Verify:
 

@@ -68,6 +68,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--offline", action="store_true", help="Use only locally cached vulnerability data")
     parser.add_argument("--nvd-api-key", default=None, help="NVD API key for higher rate limits")
     parser.add_argument("--github-token", default=None, help="GitHub token for GHSA GraphQL queries")
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Compare baseline vs after-patch scan JSON (no new scan); use with --baseline-report and --after-report",
+    )
+    parser.add_argument(
+        "--baseline-report",
+        help="Path to baseline scan-report.json or stdout summary JSON (with --validate)",
+    )
+    parser.add_argument(
+        "--after-report",
+        help="Path to after-patch scan-report.json or stdout summary JSON (with --validate)",
+    )
     return parser
 
 
@@ -246,10 +259,25 @@ def execute_scan(args: argparse.Namespace, *, emit_progress: bool = True) -> dic
     )
 
 
+def execute_validate(args: argparse.Namespace) -> dict[str, Any]:
+    """Compare two scan reports (Daybreak-style patch validation)."""
+    from scanner.integrations import validate_after_patch
+    from scanner.integrations.validate_cli import load_scan_payload
+
+    if not args.baseline_report or not args.after_report:
+        raise ValueError("--validate requires --baseline-report and --after-report")
+    baseline = load_scan_payload(args.baseline_report)
+    after = load_scan_payload(args.after_report)
+    return validate_after_patch(baseline, after)
+
+
 def main() -> int:
     args = build_parser().parse_args()
     try:
-        summary = execute_scan(args, emit_progress=True)
+        if args.validate:
+            summary = execute_validate(args)
+        else:
+            summary = execute_scan(args, emit_progress=True)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2

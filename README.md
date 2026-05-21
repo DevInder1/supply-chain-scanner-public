@@ -17,6 +17,13 @@ npm install -g @tridentchain/security-cli
 tridentchain-security --help
 ```
 
+**Agents & MCP (Claude, Cursor, VS Code):**
+
+```bash
+pip3 install "tridentchain-security>=0.1.1" tridentchain-mcp
+```
+
+What you can do: **[docs/CAPABILITIES.md](docs/CAPABILITIES.md)**  
 Full guide: **[docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md)**  
 Cross-platform (macOS / Linux / Windows): **[docs/CROSS_PLATFORM.md](docs/CROSS_PLATFORM.md)**  
 (PyPI: [tridentchain-security](https://pypi.org/project/tridentchain-security/) · npm: [@tridentchain/security-cli](https://www.npmjs.com/package/@tridentchain/security-cli))
@@ -76,6 +83,8 @@ Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI
 **Phase 3 — OpenAI + Cursor:** [examples/openai/](examples/openai/) · [Cursor setup](docs/CURSOR_SETUP.md) · `.cursor/mcp.json.example`
 
 **Phase 4 — VS Code:** [extension](extensions/vscode-tridentchain/) · [VS Code setup](docs/VSCODE_SETUP.md) · Anthropic MCP-first (`tridentchain-mcp`)
+
+**Phase 5 — Validate:** `tridentchain-security --validate` · MCP `validate_after_patch` · [CAPABILITIES.md](docs/CAPABILITIES.md)
 
 Unified tool layer: `from scanner.integrations import execute_tool, get_tool_definitions, to_openai_tools`
 

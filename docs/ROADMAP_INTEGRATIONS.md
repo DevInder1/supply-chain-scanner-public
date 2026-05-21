@@ -62,9 +62,12 @@ Goal: **keep `pip install tridentchain-security` + `tridentchain-security` CLI a
 
 ## Phase 5 — Daybreak-style validation UX
 
-- [ ] `tridentchain-security validate` CLI flag (optional)
-- [ ] MCP tool `validate_after_patch` promoted to first-class UX
-- [ ] Skill text for “upgrade then validate”
+- [x] CLI `--validate` + `--baseline-report` / `--after-report` (additive; scan flags unchanged)
+- [x] MCP `validate_after_patch` documented as first-class in [CAPABILITIES.md](CAPABILITIES.md)
+- [x] Claude skill — upgrade-then-validate workflow in `validate-fixes`
+- [x] Capabilities guide — [CAPABILITIES.md](CAPABILITIES.md)
+
+**CLI unchanged for scans:** existing `tridentchain-security --scan …` behavior is identical.
 
 ---
 
