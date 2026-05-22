@@ -1,57 +1,56 @@
-# VS Code Setup (Phase 4) — Anthropic Ecosystem
+# VS Code — TridentChain as MCP (Anthropic Ecosystem)
 
-TridentChain in VS Code follows the same **Anthropic-aligned** stack as Claude Desktop, Claude Code, and Cursor:
+TridentChain uses the **Model Context Protocol (MCP)** — the open standard from **Anthropic** for connecting AI assistants to local tools. The same pattern is used by:
 
-1. **Local stdio MCP server** — `tridentchain-mcp` → `scanner.integrations.execute_tool`
-2. **Unified tool names** — `scan_project`, `scan_full`, `validate_after_patch`
-3. **CLI fallback** — `tridentchain-security` (always available)
+| Host | Config file | Server |
+|------|-------------|--------|
+| **VS Code** (Copilot / Agent) | `.vscode/mcp.json` | `tridentchain-mcp` |
+| **Claude Desktop** | `claude_desktop_config.json` | `tridentchain-mcp` |
+| **Claude Code** | plugin `.mcp.json` | `tridentchain-mcp` |
+| **Cursor** | `.cursor/mcp.json` | `tridentchain-mcp` |
 
-No hosted connector or forked scan logic.
+TridentChain implements Anthropic’s recommended **local stdio MCP server** (not a hosted connector): scans stay on your machine.
+
+References: [Anthropic — What to build](https://docs.anthropic.com/en/docs/agents-and-tools/mcp) · [Model Context Protocol](https://modelcontextprotocol.io/) · [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
 
 ---
 
-## 1. Install Python packages
+## 1. Install (PyPI)
 
 ```bash
-pip3 install "tridentchain-security>=0.1.1"
+pip3 install "tridentchain-security>=0.1.2"
 pip3 install tridentchain-mcp
 ```
 
-Verify:
+Verify the MCP server starts:
 
 ```bash
-tridentchain-security --help
-python3 -c "from tridentchain_mcp.server import mcp; print('MCP:', mcp.name)"
+python3 -c "from tridentchain_mcp.server import mcp; print('MCP server:', mcp.name)"
+# Expect: tridentchain-security
 ```
+
+Ensure `tridentchain-mcp` is on your PATH (same Python you used for `pip3 install`). If not, use the `python3 -m` config below.
 
 ---
 
-## 2. Install the VS Code extension (development)
+## 2. Add MCP to VS Code (recommended)
+
+### Option A — Workspace config (team-friendly)
+
+In your project root:
 
 ```bash
-cd extensions/vscode-tridentchain
-npm install
-npm run compile
-```
-
-In VS Code: **Extensions** → **…** → **Install from VSIX…** after `npm run package`, or **Run Extension** (F5) with `extensions/vscode-tridentchain` as the launch folder.
-
----
-
-## 3. Optional: workspace MCP config
-
-For VS Code builds with native MCP support, copy:
-
-```bash
+mkdir -p .vscode
 cp integrations/vscode/mcp.json.example .vscode/mcp.json
 ```
 
-Same server definition as [Claude Desktop](CLAUDE_MCP_SETUP.md) and [Cursor](CURSOR_SETUP.md):
+Or create **`.vscode/mcp.json`** manually:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "tridentchain": {
+      "type": "stdio",
       "command": "tridentchain-mcp",
       "args": []
     }
@@ -59,44 +58,111 @@ Same server definition as [Claude Desktop](CLAUDE_MCP_SETUP.md) and [Cursor](CUR
 }
 ```
 
+### Option B — `python3 -m` (if `tridentchain-mcp` is not on PATH)
+
+```bash
+cp integrations/vscode/mcp.python3.json.example .vscode/mcp.json
+```
+
+```json
+{
+  "servers": {
+    "tridentchain": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+### Option C — User-wide (all workspaces)
+
+1. Command Palette → **`MCP: Open User Configuration`**
+2. Paste the same `servers.tridentchain` block into your user `mcp.json`.
+
 ---
 
-## 4. Commands
+## 3. Start the server in VS Code
 
-| Command | MCP tool | CLI equivalent |
-|---------|----------|----------------|
-| **TridentChain: Scan Workspace (Full)** | `scan_full` | `--scan all` |
-| **TridentChain: Scan Project Dependencies** | `scan_project` | `--scan project` |
-| **TridentChain: Open Scan Report** | — | opens `.tridentchain-out/scan-report.json` |
-| **TridentChain: Validate After Patch** | `validate_after_patch` | local diff fallback |
+1. Open the project folder in VS Code.
+2. Command Palette → **`MCP: List Servers`** — confirm **tridentchain** appears.
+3. Start or restart the server if needed (**MCP: List Servers** → Start).
+4. Open **Copilot Chat** or **Agent** mode (VS Code 1.102+ with MCP enabled).
+5. Ensure MCP tools are allowed: setting **`chat.mcp.access`**.
 
-Default: `tridentchain.preferMcp` = `true` (MCP first, then CLI).
+Ask the agent, for example:
 
----
-
-## 5. Output
-
-| Artifact | Location |
-|----------|----------|
-| JSON report | `.tridentchain-out/scan-report.json` |
-| HTML reports | `.tridentchain-out/*.html` |
-| Problems panel | Diagnostics on `package.json` / lockfile manifest |
-| Webview | **TridentChain Findings** |
+> Scan this workspace for supply-chain vulnerabilities using the tridentchain MCP tools. Start with scan_project and write reports to .tridentchain-out.
 
 ---
 
-## 6. Claude plugin parity
+## 4. MCP tools (same as Claude / Cursor)
 
-The [Claude plugin](../plugins/tridentchain-security/) uses the same MCP server and skills. VS Code extension + plugin share:
+| Tool | Use when |
+|------|----------|
+| `scan_project` | Fast scan — project dependencies only |
+| `scan_full` | Full scan — project + OS packages + IDE extensions |
+| `validate_after_patch` | After upgrades — compare two scan JSON payloads |
 
-- Tool schema version `TOOL_SCHEMA_VERSION` in `scanner.integrations`
-- PyPI packages `tridentchain-security` + `tridentchain-mcp`
+Reports are written under `.tridentchain-out/` (or the `output_dir` you pass).
+
+---
+
+## 5. CLI fallback (always works)
+
+If MCP is not enabled in your VS Code build:
+
+```bash
+tridentchain-security --scan all --project-path . --output-dir .tridentchain-out
+```
+
+---
+
+## 6. Optional: TridentChain VS Code extension
+
+The repo extension (`extensions/vscode-tridentchain/`) adds Command Palette actions and a findings webview. It uses the **same** `tridentchain-mcp` server internally. Native `.vscode/mcp.json` is enough for Copilot/Agent MCP tools without installing the extension.
+
+---
+
+## 7. Sandboxing (optional)
+
+VS Code can run MCP servers in a sandbox. TridentChain needs read access to the workspace and network for advisory APIs. Example:
+
+```json
+{
+  "servers": {
+    "tridentchain": {
+      "type": "stdio",
+      "command": "tridentchain-mcp",
+      "args": [],
+      "sandboxEnabled": true,
+      "sandbox": {
+        "filesystem": {
+          "allowWrite": ["${workspaceFolder}"]
+        },
+        "network": {
+          "allowedDomains": ["api.osv.dev", "services.nvd.nist.gov", "*.githubusercontent.com"]
+        }
+      }
+    }
+  }
+}
+```
+
+Adjust domains if you use extra sources (GHSA, Sonatype).
+
+---
+
+## Claude plugin parity
+
+The [Claude plugin](../plugins/tridentchain-security/) registers the same MCP server and skills (`supply-chain-scan`, `validate-fixes`). One install (`tridentchain-mcp`) serves VS Code, Claude, and Cursor.
 
 ---
 
 ## Related
 
-- [INTEGRATION_ARCHITECTURE.md](INTEGRATION_ARCHITECTURE.md) — Anthropic official path
-- [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md)
-- [CURSOR_SETUP.md](CURSOR_SETUP.md)
-- [extensions/vscode-tridentchain/README.md](../extensions/vscode-tridentchain/README.md)
+- [CAPABILITIES.md](CAPABILITIES.md) — full feature list
+- [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md) — Claude Desktop / Code
+- [CURSOR_SETUP.md](CURSOR_SETUP.md) — Cursor
+- [INTEGRATION_ARCHITECTURE.md](INTEGRATION_ARCHITECTURE.md)

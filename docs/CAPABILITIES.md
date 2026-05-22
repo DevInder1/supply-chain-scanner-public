@@ -105,8 +105,9 @@ Stdio MCP host — **Anthropic-aligned local server** (no cloud connector).
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "tridentchain": {
+      "type": "stdio",
       "command": "tridentchain-mcp",
       "args": []
     }
@@ -114,7 +115,13 @@ Stdio MCP host — **Anthropic-aligned local server** (no cloud connector).
 }
 ```
 
-Examples: [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md), [CURSOR_SETUP.md](CURSOR_SETUP.md), [VSCODE_SETUP.md](VSCODE_SETUP.md).
+(Claude Desktop / Cursor: use `"mcpServers"` instead of `"servers"` — same command.)
+
+**VS Code (native MCP):** copy `integrations/vscode/mcp.json.example` → `.vscode/mcp.json` (uses `"servers"` per [VS Code MCP reference](https://code.visualstudio.com/docs/copilot/reference/mcp-configuration)).
+
+**Claude / Cursor** use `"mcpServers"` in their config files — same `command: tridentchain-mcp`.
+
+Examples: [VSCODE_SETUP.md](VSCODE_SETUP.md), [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md), [CURSOR_SETUP.md](CURSOR_SETUP.md).
 
 ---
 

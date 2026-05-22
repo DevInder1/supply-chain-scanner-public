@@ -82,7 +82,7 @@ Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI
 
 **Phase 3 — OpenAI + Cursor:** [examples/openai/](examples/openai/) · [Cursor setup](docs/CURSOR_SETUP.md) · `.cursor/mcp.json.example`
 
-**Phase 4 — VS Code:** [extension](extensions/vscode-tridentchain/) · [VS Code setup](docs/VSCODE_SETUP.md) · Anthropic MCP-first (`tridentchain-mcp`)
+**Phase 4 — VS Code (Anthropic MCP):** [VS Code MCP setup](docs/VSCODE_SETUP.md) · `.vscode/mcp.json` · [extension](extensions/vscode-tridentchain/)
 
 **Phase 5 — Validate:** `tridentchain-security --validate` · MCP `validate_after_patch` · [CAPABILITIES.md](docs/CAPABILITIES.md)
 
