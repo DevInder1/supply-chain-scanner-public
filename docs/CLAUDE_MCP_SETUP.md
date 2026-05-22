@@ -1,34 +1,46 @@
-# Claude & MCP Setup (Phase 2)
+# Use TridentChain with Claude (MCP) — Step by Step
 
-TridentChain Security Phase 2 adds **`tridentchain-mcp`** and a **Claude plugin**. The pip CLI **`tridentchain-security`** is unchanged.
+Everything below uses **published PyPI packages** (no repo clone required for MCP).
+
+| Package | PyPI | Version |
+|---------|------|---------|
+| `tridentchain-security` | https://pypi.org/project/tridentchain-security/ | **0.1.2** (latest) |
+| `tridentchain-mcp` | https://pypi.org/project/tridentchain-mcp/ | **0.1.1** (latest) |
+
+npm `@tridentchain/security-cli` is optional (CLI wrapper only).
 
 ---
 
-## 1. Install
+## Step 1 — Install (terminal)
 
 ```bash
-pip3 install "tridentchain-security>=0.1.1"
-pip3 install tridentchain-mcp
+pip3 install "tridentchain-security>=0.1.2"
+pip3 install "tridentchain-mcp>=0.1.1"
 ```
 
-`tridentchain-mcp` depends on `tridentchain-security>=0.1.1`. Older `0.1.0` scans still work but cannot use MCP integrations.
+Use `python3 -m pip` if `pip3` fails on macOS.
 
-See [CAPABILITIES.md](CAPABILITIES.md) for all tools and validate workflow.
-
-Verify:
+**Verify:**
 
 ```bash
 tridentchain-security --help
-python3 -c "from tridentchain_mcp.server import mcp; print('MCP ready:', mcp.name)"
+which tridentchain-mcp
+python3 -c "from tridentchain_mcp.server import mcp; print('MCP server:', mcp.name)"
 ```
 
-`tridentchain-mcp` is a stdio MCP server (no `--help`); hosts start it via `command: tridentchain-mcp`.
+Expected MCP name: `tridentchain-security`.
 
 ---
 
-## 2. Claude Desktop
+## Step 2 — Choose your Claude app
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+### A) Claude Desktop (chat app)
+
+1. Quit Claude Desktop completely.
+2. Open the MCP config file:
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+3. Add or merge this block (keep other servers if you have them):
 
 ```json
 {
@@ -41,17 +53,66 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 }
 ```
 
-Restart Claude Desktop. Ask: *"Scan this project for supply chain vulnerabilities using tridentchain."*
+If `tridentchain-mcp` is not found, use the full path from `which tridentchain-mcp`:
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "/opt/homebrew/bin/tridentchain-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Or the portable form:
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+4. Save the file and **restart Claude Desktop**.
+5. In a new chat, enable MCP tools (hammer/tools icon) and confirm **tridentchain** appears.
+6. Try:
+
+> Scan this folder for supply-chain vulnerabilities. Use scan_project with project_path set to my workspace and output_dir `.tridentchain-out`.
 
 ---
 
-## 3. Claude Code — plugin
+### B) Claude Code (terminal IDE)
+
+**Option 1 — MCP only (PyPI, any project folder)**
+
+1. In your project root, create `.mcp.json` (Claude Code reads this):
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+2. Start Claude Code in that folder: `claude`
+3. Ask Claude to run `scan_project` or `scan_full`.
+
+**Option 2 — Official plugin (skills + MCP)**
 
 ```bash
 git clone https://github.com/DevInder1/supply-chain-scanner-public.git
 cd supply-chain-scanner-public
-pip3 install -e .
-pip3 install -e tridentchain-mcp
+pip3 install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
 claude --plugin-dir ./plugins/tridentchain-security
 ```
 
@@ -62,51 +123,59 @@ Skills:
 
 ---
 
-## 4. Cursor
+## Step 3 — MCP tools you can use
 
-Create `.cursor/mcp.json` in your project:
+| Tool | When to use |
+|------|-------------|
+| `scan_project` | Fast — project dependencies only |
+| `scan_full` | Full — project + OS packages + IDE extensions |
+| `validate_after_patch` | After upgrading deps — compare two scan JSON results |
 
-```json
-{
-  "mcpServers": {
-    "tridentchain": {
-      "command": "tridentchain-mcp",
-      "args": []
-    }
-  }
-}
-```
+Reports are written under `.tridentchain-out/` (or the `output_dir` you pass).
 
-Reload Cursor MCP. CLI fallback still works:
+---
+
+## Step 4 — Example prompts in Claude
+
+**Scan:**
+
+> Use the tridentchain MCP tool scan_project on this workspace. project_path is the repo root, output_dir is `.tridentchain-out`. Summarize findings by severity.
+
+**Full scan:**
+
+> Run scan_full on this project with output_dir `.tridentchain-out`.
+
+**After upgrading packages:**
+
+> Run scan_project twice (before/after) or use validate_after_patch with baseline and after-patch JSON from the scans.
+
+---
+
+## Step 5 — CLI fallback (if MCP does not connect)
 
 ```bash
+cd /path/to/your/project
 tridentchain-security --scan all --project-path . --output-dir .tridentchain-out
 ```
 
----
-
-## 5. MCP tools
-
-| Tool | Purpose |
-|------|---------|
-| `scan_project` | Fast project dependency scan |
-| `scan_full` | Project + system + IDE extensions |
-| `validate_after_patch` | Compare two scan JSON blobs after upgrades |
+Then ask Claude to read `.tridentchain-out/scan-report.json`.
 
 ---
 
-## 6. Fallback
+## Troubleshooting
 
-If MCP is not configured, agents should use:
-
-```bash
-tridentchain-security --scan all --project-path <path> --output-dir .tridentchain-out
-```
+| Problem | Fix |
+|---------|-----|
+| MCP server not listed | Restart Claude; check JSON syntax; run `which tridentchain-mcp` |
+| `command not found` | Use `python3 -m tridentchain_mcp` in config instead |
+| Tools grayed out | Install packages again; check Claude MCP/tools settings |
+| Slow first scan | First run downloads advisory data; later runs use cache |
+| Old behavior | Pin `tridentchain-security==0.1.0` (no MCP); for MCP use **≥0.1.1** |
 
 ---
 
 ## Related
 
-- [INTEGRATION_ARCHITECTURE.md](INTEGRATION_ARCHITECTURE.md)
-- [ROADMAP_INTEGRATIONS.md](ROADMAP_INTEGRATIONS.md)
-- [plugins/tridentchain-security/README.md](../plugins/tridentchain-security/README.md)
+- [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md) — all agents
+- [CAPABILITIES.md](CAPABILITIES.md) — full feature list
+- [PLUGIN_SUBMISSION.md](PLUGIN_SUBMISSION.md) — Anthropic submission pack
