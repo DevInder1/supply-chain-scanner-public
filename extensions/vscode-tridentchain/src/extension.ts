@@ -3,6 +3,8 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { publishDiagnostics } from "./diagnostics";
 import { showFindingsPanel } from "./findingsPanel";
+import { registerMcpProvider } from "./mcpProvider";
+import { openMcpInstallLink, setupWorkspaceMcp } from "./setupMcp";
 import { runScan, validateAfterPatch } from "./scanService";
 import type { ScanSummary } from "./types";
 
@@ -66,10 +68,13 @@ async function executeScan(
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  registerMcpProvider(context);
   diagnosticCollection = vscode.languages.createDiagnosticCollection("tridentchain");
   context.subscriptions.push(diagnosticCollection);
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("tridentchain.setupMcp", () => setupWorkspaceMcp()),
+    vscode.commands.registerCommand("tridentchain.installMcp", () => openMcpInstallLink()),
     vscode.commands.registerCommand("tridentchain.scanWorkspace", () =>
       executeScan(context, "scan_full")
     ),

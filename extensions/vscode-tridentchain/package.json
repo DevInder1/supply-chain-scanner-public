@@ -10,21 +10,34 @@
     "url": "https://github.com/DevInder1/supply-chain-scanner-public.git"
   },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.102.0"
   },
   "categories": [
     "Other",
     "Linters"
   ],
   "activationEvents": [
-    "onCommand:tridentchain.scanWorkspace",
-    "onCommand:tridentchain.scanProject",
-    "onCommand:tridentchain.showReport",
-    "onCommand:tridentchain.validateFixes"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "tridentchainProvider",
+        "label": "TridentChain Security"
+      }
+    ],
     "commands": [
+      {
+        "command": "tridentchain.setupMcp",
+        "title": "TridentChain: Setup MCP in This Workspace",
+        "category": "TridentChain"
+      },
+      {
+        "command": "tridentchain.installMcp",
+        "title": "TridentChain: Add MCP Server (One-Click Install)",
+        "category": "TridentChain"
+      },
       {
         "command": "tridentchain.scanWorkspace",
         "title": "TridentChain: Scan Workspace (Full)",
@@ -90,7 +103,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.120.0",
     "typescript": "^5.4.0"
   },
   "dependencies": {

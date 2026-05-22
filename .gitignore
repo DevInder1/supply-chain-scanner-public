@@ -1,6 +1,7 @@
 # Environment secrets
 .env
-.vscode/
+.vscode/*
+!.vscode/mcp.json
 
 # Python
 __pycache__/

@@ -33,9 +33,32 @@ Ensure `tridentchain-mcp` is on your PATH (same Python you used for `pip3 instal
 
 ---
 
-## 2. Add MCP to VS Code (recommended)
+## 2. Easiest ways to enable MCP in VS Code
 
-### Option A — Workspace config (team-friendly)
+### Option A — Open this repo (zero config)
+
+This repository includes **`.vscode/mcp.json`** already. Open the folder in VS Code → **`MCP: List Servers`** → start **tridentchain**.
+
+### Option B — One-click install link
+
+After `pip install tridentchain-mcp`, run:
+
+```bash
+./scripts/vscode-mcp-install-link.sh
+```
+
+Open the printed `vscode:mcp/install?...` link (or paste in browser). VS Code adds the server globally.
+
+### Option C — TridentChain VS Code extension
+
+Install / run the extension (`extensions/vscode-tridentchain/`):
+
+- Command Palette → **`TridentChain: Add MCP Server (One-Click Install)`**
+- Or → **`TridentChain: Setup MCP in This Workspace`** (writes `.vscode/mcp.json`)
+
+The extension also registers MCP under **Extensions → MCP Servers** automatically (VS Code 1.102+).
+
+### Option D — Manual workspace config
 
 In your project root:
 
