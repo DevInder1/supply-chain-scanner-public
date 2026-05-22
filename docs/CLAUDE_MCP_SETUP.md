@@ -13,9 +13,24 @@ npm `@tridentchain/security-cli` is optional (CLI wrapper only).
 
 ## Step 1 — Install (terminal)
 
+### Option A — uvx (zero persistent install, Anthropic-recommended)
+
+`uvx` runs `tridentchain-mcp` in an isolated environment automatically — no `pip install` needed:
+
 ```bash
-pip3 install "tridentchain-security>=0.1.2"
-pip3 install "tridentchain-mcp>=0.1.1"
+# Install uv once (if not already present)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify the MCP server works
+uvx tridentchain-mcp --version
+```
+
+Skip to Step 2 and use `"command": "uvx"` in the config.
+
+### Option B — pip install (classic)
+
+```bash
+pip3 install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
 ```
 
 Use `python3 -m pip` if `pip3` fails on macOS.
@@ -23,8 +38,8 @@ Use `python3 -m pip` if `pip3` fails on macOS.
 **Verify:**
 
 ```bash
-tridentchain-security --help
-which tridentchain-mcp
+tridentchain-security --version
+tridentchain-mcp --version
 python3 -c "from tridentchain_mcp.server import mcp; print('MCP server:', mcp.name)"
 ```
 
@@ -42,6 +57,21 @@ Expected MCP name: `tridentchain-security`.
    - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 3. Add or merge this block (keep other servers if you have them):
 
+**uvx (recommended — Anthropic official pattern, no pip install):**
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "uvx",
+      "args": ["tridentchain-mcp"]
+    }
+  }
+}
+```
+
+**pip-installed fallback:**
+
 ```json
 {
   "mcpServers": {
@@ -53,20 +83,7 @@ Expected MCP name: `tridentchain-security`.
 }
 ```
 
-If `tridentchain-mcp` is not found, use the full path from `which tridentchain-mcp`:
-
-```json
-{
-  "mcpServers": {
-    "tridentchain": {
-      "command": "/opt/homebrew/bin/tridentchain-mcp",
-      "args": []
-    }
-  }
-}
-```
-
-Or the portable form:
+**Most portable form (works even if the script isn't on PATH):**
 
 ```json
 {
@@ -89,16 +106,26 @@ Or the portable form:
 
 ### B) Claude Code (terminal IDE)
 
-**Option 1 — MCP only (PyPI, any project folder)**
+**Option 1 — `claude mcp add` (one-liner, persists globally)**
 
-1. In your project root, create `.mcp.json` (Claude Code reads this):
+```bash
+# uvx variant (recommended — no pip install needed)
+claude mcp add tridentchain -- uvx tridentchain-mcp
+
+# pip variant
+claude mcp add tridentchain -- python3 -m tridentchain_mcp
+```
+
+**Option 2 — Project-level `.mcp.json` (auto-discovered when you `cd` into the project)**
+
+1. In your project root, create `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "tridentchain": {
-      "command": "python3",
-      "args": ["-m", "tridentchain_mcp"]
+      "command": "uvx",
+      "args": ["tridentchain-mcp"]
     }
   }
 }
@@ -107,7 +134,7 @@ Or the portable form:
 2. Start Claude Code in that folder: `claude`
 3. Ask Claude to run `scan_project` or `scan_full`.
 
-**Option 2 — Official plugin (skills + MCP)**
+**Option 3 — Official plugin (skills + MCP)**
 
 ```bash
 git clone https://github.com/DevInder1/supply-chain-scanner-public.git

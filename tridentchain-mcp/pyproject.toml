@@ -13,8 +13,8 @@ authors = [
   { name = "TridentChain Security Contributors" }
 ]
 dependencies = [
-  "tridentchain-security>=0.1.1",
-  "mcp>=1.0.0",
+  "tridentchain-security>=0.1.2",
+  "mcp[cli]>=1.6.0",
 ]
 keywords = ["mcp", "security", "supply-chain", "claude", "cursor"]
 classifiers = [
