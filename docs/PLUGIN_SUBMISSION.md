@@ -41,8 +41,9 @@ TridentChain Security scans project dependencies, system packages, and IDE exten
 ### Prerequisites for reviewers
 
 ```bash
-pip install "tridentchain-security>=0.1.2" tridentchain-mcp
+pip install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
 python3 -c "from tridentchain_mcp.server import mcp; print(mcp.name)"
+# → tridentchain-security
 ```
 
 Test repo: any open-source Node or Python project with `package.json` or `requirements.txt`.
@@ -92,13 +93,18 @@ Test repo: any open-source Node or Python project with `package.json` or `requir
 
 ## Launch readiness
 
-| Surface | Tested |
+| Surface | Status |
 |---------|--------|
-| Claude Code + plugin | Yes (dev) |
-| Claude Desktop + mcpServers | Yes (config documented) |
-| Cursor / VS Code | Same MCP server (separate docs) |
+| Claude Code — `claude mcp add` (global) | ✓ Connected (verified 2026-05-22) |
+| Claude Code — plugin `--plugin-dir` | ✓ Skills load, `claude plugin validate` passes |
+| Claude Code — project `.mcp.json` | ✓ Auto-discovered |
+| Claude Desktop — `mcpServers` | ✓ Config documented, stdio handshake verified |
+| Cursor — `.cursor/mcp.json` | ✓ Config documented |
+| VS Code — `.vscode/mcp.json` (`type: stdio`) | ✓ Config documented |
+| Windsurf — `mcp_config.json` | ✓ Config documented |
+| Zed — `context_servers` | ✓ Config documented |
 
-**GA:** PyPI packages published (`tridentchain-security@0.1.2`, `tridentchain-mcp@0.1.1` after next publish — includes tool annotations).
+**GA:** Both PyPI packages published and live — `tridentchain-security@0.1.2`, `tridentchain-mcp@0.1.1`. All three MCP tools carry `title`, `readOnlyHint`, `destructiveHint`, `openWorldHint`, and `Annotated` parameter descriptions per spec.
 
 ---
 
