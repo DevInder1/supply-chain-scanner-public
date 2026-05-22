@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "tridentchain": {
-      "command": "tridentchain-mcp",
-      "args": []
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
     }
   }
 }

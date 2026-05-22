@@ -1,15 +1,27 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "tridentchain-security",
-  "description": "Supply-chain vulnerability scanning via TridentChain Security MCP (OSV, NVD, EPSS, fix versions)",
-  "version": "1.0.0",
+  "version": "0.1.2",
+  "description": "Local supply-chain vulnerability scanning via MCP (OSV, NVD, EPSS). Scans dependencies and validates fixes after upgrades.",
   "author": {
-    "name": "TridentChain Security Contributors"
-  },
-  "repository": {
-    "type": "git",
+    "name": "TridentChain Security Contributors",
     "url": "https://github.com/DevInder1/supply-chain-scanner-public"
   },
   "homepage": "https://github.com/DevInder1/supply-chain-scanner-public",
+  "repository": "https://github.com/DevInder1/supply-chain-scanner-public",
   "license": "MIT",
-  "keywords": ["security", "supply-chain", "vulnerability", "mcp"]
+  "keywords": [
+    "security",
+    "supply-chain",
+    "vulnerability",
+    "mcp",
+    "cve",
+    "dependencies",
+    "osv",
+    "sbom"
+  ],
+  "category": "security",
+  "privacy_policies": [
+    "https://raw.githubusercontent.com/DevInder1/supply-chain-scanner-public/main/plugins/tridentchain-security/PRIVACY.md"
+  ]
 }

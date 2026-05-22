@@ -82,18 +82,20 @@ Claude Desktop / Claude Code / Cursor / VS Code do **not** need a different “A
 - Published PyPI: `tridentchain-security`, `tridentchain-mcp`
 - Cross-host docs (Claude, Cursor, VS Code, OpenAI, Windsurf)
 
-### Nice-to-have for Anthropic submission polish
+### Tier 2 polish (done in repo)
 
-- [ ] MCP tool **annotations** (`readOnlyHint`, `title`) for auto-approve read-only tools in VS Code
-- [ ] **Prompts** resource (optional MCP prompts as slash commands)
-- [ ] Stricter **path sandbox** docs for `project_path` (security review)
-- [ ] **Plugin version** aligned with PyPI (`plugin.json` vs `0.1.2`)
+- [x] MCP tool **annotations** (`title`, `readOnlyHint`, `destructiveHint`)
+- [x] **Plugin version** `0.1.2` aligned with PyPI
+- [x] **PRIVACY.md** + `privacy_policies` HTTPS URL in `plugin.json`
+- [x] **SECURITY.md**, icon, submission checklist
+- [x] [PLUGIN_SUBMISSION.md](PLUGIN_SUBMISSION.md) — form copy-paste pack
+- [x] `./scripts/validate-plugin.sh`
 
-### Directory / official catalog (next product steps)
+### Directory / official catalog (your action)
 
-- [ ] **Submit plugin** to Anthropic’s plugin distribution path (follow current [submission docs](https://claude.com/docs/connectors/building/submission))
-- [ ] **MCPB package** for Claude Desktop Extensions (if you want one-click Desktop without pip)
-- [ ] **Remote MCP** only if you want claude.ai users without local install (conflicts with local-first unless hybrid)
+- [ ] **Submit plugin** — use [PLUGIN_SUBMISSION.md](PLUGIN_SUBMISSION.md) + `claude plugin validate`
+- [ ] **MCPB package** for Claude Desktop Extensions (Phase 6 optional)
+- [ ] **Remote MCP** only if you want claude.ai users without local install
 
 ---
 

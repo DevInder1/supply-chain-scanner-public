@@ -25,7 +25,14 @@ def _json_result(payload: dict[str, Any]) -> str:
     return json.dumps(payload, indent=2, default=str)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "title": "Scan Project Dependencies",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "openWorldHint": True,
+    }
+)
 def scan_project(
     project_path: str,
     output_dir: str | None = None,
@@ -45,7 +52,14 @@ def scan_project(
     return _json_result(result)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "title": "Scan Workspace (Full)",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "openWorldHint": True,
+    }
+)
 def scan_full(
     project_path: str,
     output_dir: str | None = None,
@@ -65,7 +79,14 @@ def scan_full(
     return _json_result(result)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "title": "Validate After Patch",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "openWorldHint": False,
+    }
+)
 def validate_after_patch(baseline_json: str, after_patch_json: str) -> str:
     """Compare baseline vs post-patch scan JSON (from scan_project or scan_full)."""
     baseline = json.loads(baseline_json) if isinstance(baseline_json, str) else baseline_json

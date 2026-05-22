@@ -73,8 +73,9 @@ Goal: **keep `pip install tridentchain-security` + `tridentchain-security` CLI a
 
 ## Phase 6 — Anthropic catalog (optional)
 
-- [ ] MCP tool annotations (`readOnlyHint`, titles) for VS Code / Claude UX
-- [ ] Plugin submission to Anthropic plugin / connector process
+- [x] MCP tool annotations (`readOnlyHint`, titles) for directory review
+- [x] Plugin submission pack ([PLUGIN_SUBMISSION.md](PLUGIN_SUBMISSION.md), checklist, validate script)
+- [ ] **Submitted** to Anthropic plugin / connector process (manual step)
 - [ ] MCP Bundle (MCPB) for Claude Desktop Extensions (optional)
 - [ ] Remote MCP + OAuth only if claude.ai web users need hosted access
 
