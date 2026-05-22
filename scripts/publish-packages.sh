@@ -8,18 +8,28 @@ cd "$ROOT"
 echo "Installing build/publish tools..."
 python3 -m pip install --upgrade build twine >/dev/null
 
-# ── 2. Build dist wheels/sdists ───────────────────────────────────────────────
+# ── 2. Read versions from pyproject.toml (single source of truth) ─────────────
+SEC_VER=$(python3 -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); print(d['project']['version'])")
+MCP_VER=$(python3 -c "import tomllib; d=tomllib.load(open('tridentchain-mcp/pyproject.toml','rb')); print(d['project']['version'])")
+echo "Releasing: tridentchain-security==$SEC_VER  tridentchain-mcp==$MCP_VER"
+
+# ── 3. Clean old dist artifacts before building ────────────────────────────────
+echo "Cleaning old dist files..."
+rm -f dist/tridentchain_security-*.whl dist/tridentchain_security-*.tar.gz
+rm -f tridentchain-mcp/dist/tridentchain_mcp-*.whl tridentchain-mcp/dist/tridentchain_mcp-*.tar.gz
+
+# ── 4. Build dist wheels/sdists ───────────────────────────────────────────────
 echo "Building tridentchain-security..."
-python3 -m build
+python3 -m build --quiet
 
 echo "Building tridentchain-mcp..."
-(cd tridentchain-mcp && python3 -m build)
+(cd tridentchain-mcp && python3 -m build --quiet)
 
-# ── 3. Install from the freshly built wheels and smoke-test ───────────────────
+# ── 5. Install from the freshly built wheels and smoke-test ───────────────────
 echo "Installing local builds for validation..."
 python3 -m pip install --force-reinstall --quiet \
-  dist/tridentchain_security-*.whl \
-  tridentchain-mcp/dist/tridentchain_mcp-*.whl
+  "dist/tridentchain_security-${SEC_VER}-py3-none-any.whl" \
+  "tridentchain-mcp/dist/tridentchain_mcp-${MCP_VER}-py3-none-any.whl"
 
 echo "Smoke-testing imports..."
 python3 - <<'PY'
