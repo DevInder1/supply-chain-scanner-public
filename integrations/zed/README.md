@@ -1,9 +1,43 @@
 # Zed + TridentChain MCP
 
-1. `pip install "tridentchain-security>=0.1.2" tridentchain-mcp`
-2. Open Zed → **Settings** → merge [settings.mcp.json.example](settings.mcp.json.example) into `~/.config/zed/settings.json` under `context_servers` (Zed MCP layout may vary by version — check Zed docs for **Model Context Protocol**).
-3. Restart Zed and enable the **tridentchain** context server in the assistant panel.
+## Install
 
-Fallback: terminal → `tridentchain-security --scan project --project-path . --output-dir .tridentchain-out`
+```bash
+pip install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
+```
+
+## Configure
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "context_servers": {
+    "tridentchain": {
+      "command": {
+        "path": "python3",
+        "args": ["-m", "tridentchain_mcp"]
+      },
+      "settings": {}
+    }
+  }
+}
+```
+
+Restart Zed. The **tridentchain** context server should appear in the assistant panel.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `scan_project` | Project dependencies only (fast) |
+| `scan_full` | Project + OS packages + IDE extensions |
+| `validate_after_patch` | Compare scans before/after upgrades |
+
+## CLI fallback
+
+```bash
+tridentchain-security --scan all --project-path . --output-dir .tridentchain-out
+```
 
 [Agent integrations hub](../../docs/AGENT_INTEGRATIONS.md)

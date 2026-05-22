@@ -17,11 +17,16 @@ TridentChain uses **one engine** and **one tool schema** across every agent. Pic
     Claude · Cursor · VS Code · Windsurf · Zed · …
 ```
 
-**Install once (recommended):**
+**Install once:**
 
 ```bash
-pip3 install "tridentchain-security>=0.1.2"
-pip3 install tridentchain-mcp
+pip3 install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
+```
+
+**Claude Code — register globally (one-liner):**
+
+```bash
+claude mcp add tridentchain -- python3 -m tridentchain_mcp
 ```
 
 **Universal fallback (every agent):** any host that can run shell commands → `tridentchain-security --scan all --project-path . --output-dir .tridentchain-out`
@@ -48,7 +53,13 @@ pip3 install tridentchain-mcp
 ## Shared MCP server (Anthropic ecosystem + all MCP hosts)
 
 **Package:** `tridentchain-mcp` on PyPI  
-**Command:** `tridentchain-mcp` or `python3 -m tridentchain_mcp`
+**Command:** `python3 -m tridentchain_mcp` (portable) or `tridentchain-mcp` (PATH entry point)
+
+**Claude Code global registration (one-liner):**
+
+```bash
+claude mcp add tridentchain -- python3 -m tridentchain_mcp
+```
 
 | Tool | Description |
 |------|-------------|
