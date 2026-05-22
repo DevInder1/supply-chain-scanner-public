@@ -30,7 +30,7 @@ export function registerMcpProvider(context: vscode.ExtensionContext): void {
         }
         return [new McpStdio("TridentChain Security", command, args)];
       },
-      resolveMcpServerDefinition: async (definition: { label?: string }) => {
+      resolveMcpServerDefinition: async (definition) => {
         if (definition.label === "TridentChain Security") {
           const choice = await vscode.window.showInformationMessage(
             "TridentChain MCP uses local Python packages. Install with: pip install tridentchain-security tridentchain-mcp",
