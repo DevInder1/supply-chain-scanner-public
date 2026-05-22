@@ -72,11 +72,19 @@ cd apps/desktop && npm install && npm run start
 
 See [apps/desktop/README.md](apps/desktop/README.md) and [docs/DISTRIBUTION_VERIFICATION.md](docs/DISTRIBUTION_VERIFICATION.md).
 
-## AI / automation
+## AI / automation (Claude, OpenAI, Cursor, VS Code, Windsurf, …)
 
-Use CLI JSON or `run_scan()` from any agent — [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md).
+**One install, every agent:** `pip install "tridentchain-security>=0.1.2" tridentchain-mcp`
 
-**Integration architecture** (Claude MCP, OpenAI, Cursor, VS Code): [docs/INTEGRATION_ARCHITECTURE.md](docs/INTEGRATION_ARCHITECTURE.md) · [Roadmap](docs/ROADMAP_INTEGRATIONS.md)
+| Guide | Description |
+|-------|-------------|
+| **[Agent integrations](docs/AGENT_INTEGRATIONS.md)** | Claude · OpenAI · Cursor · VS Code · Windsurf · Zed · MCP · CLI |
+| [Capabilities](docs/CAPABILITIES.md) | Everything you can do today |
+| [Architecture](docs/INTEGRATION_ARCHITECTURE.md) | MCP + unified tools design |
+
+```bash
+./scripts/setup-agent-mcp.sh cursor   # prints setup for your agent
+```
 
 **Phase 2 — Claude MCP:** `pip install tridentchain-mcp` · [Setup guide](docs/CLAUDE_MCP_SETUP.md) · [Plugin](plugins/tridentchain-security/)
 

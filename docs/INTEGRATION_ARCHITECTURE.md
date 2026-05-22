@@ -66,7 +66,8 @@ See `scanner/integrations/unified.py`.
 | **OpenAI** | Chat Completions tools / Agents SDK | Live (`examples/openai/`, `openai_adapter`) |
 | **Cursor** | MCP + project rules + CLI | Live ([CURSOR_SETUP.md](CURSOR_SETUP.md)) |
 | **VS Code** | Extension → local MCP + CLI fallback | Live ([VSCODE_SETUP.md](VSCODE_SETUP.md)) |
-| **Daybreak-style** | Detect → patch → `validate_after_patch` | Planned (two-scan diff) |
+| **Windsurf / Zed / other MCP** | Same `tridentchain-mcp` stdio server | Live ([AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md)) |
+| **Daybreak-style** | Detect → patch → `validate_after_patch` | Live (CLI `--validate` + MCP tool) |
 
 ---
 

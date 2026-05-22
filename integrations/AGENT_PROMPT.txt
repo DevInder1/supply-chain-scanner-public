@@ -1,0 +1,16 @@
+This workspace uses TridentChain Security for supply-chain vulnerability scanning.
+
+PREFERRED — MCP tools (if tridentchain server is connected):
+- scan_project(project_path, output_dir?) — fast project dependency scan
+- scan_full(project_path, output_dir?) — project + system + IDE extensions
+- validate_after_patch(baseline_json, after_patch_json) — compare scans after dependency upgrades
+
+FALLBACK — shell (always available after: pip install tridentchain-security):
+  tridentchain-security --scan all --project-path <WORKSPACE_ROOT> --output-dir .tridentchain-out
+
+Then read .tridentchain-out/scan-report.json and HTML reports under .tridentchain-out/.
+
+Notes:
+- Default profile needs no API keys (OSV-first full scan).
+- Use --run-profile quick for faster iteration.
+- Do not paste secrets into chat; use environment variables for optional NVD/GitHub keys.

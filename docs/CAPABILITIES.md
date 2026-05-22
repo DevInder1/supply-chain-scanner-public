@@ -121,7 +121,7 @@ Stdio MCP host — **Anthropic-aligned local server** (no cloud connector).
 
 **Claude / Cursor** use `"mcpServers"` in their config files — same `command: tridentchain-mcp`.
 
-Examples: [VSCODE_SETUP.md](VSCODE_SETUP.md), [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md), [CURSOR_SETUP.md](CURSOR_SETUP.md).
+**Hub:** [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md) · Setup: `./scripts/setup-agent-mcp.sh <agent>`
 
 ---
 
@@ -129,11 +129,13 @@ Examples: [VSCODE_SETUP.md](VSCODE_SETUP.md), [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_S
 
 | Platform | How | Doc |
 |----------|-----|-----|
+| **All agents** | MCP + CLI + OpenAI tools | [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md) |
 | **Shell / CI** | `tridentchain-security` CLI | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
 | **Claude** | MCP + [plugin](../plugins/tridentchain-security/) | [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md) |
 | **Cursor** | MCP + project rule | [CURSOR_SETUP.md](CURSOR_SETUP.md) |
-| **VS Code** | Extension (MCP-first) | [VSCODE_SETUP.md](VSCODE_SETUP.md) |
-| **OpenAI** | `to_openai_tools()` + examples | [examples/openai/](../examples/openai/) |
+| **VS Code** | MCP + extension | [VSCODE_SETUP.md](VSCODE_SETUP.md) |
+| **OpenAI** | `to_openai_tools()` + examples | [integrations/openai/](../integrations/openai/) |
+| **Windsurf / Zed** | MCP stdio | [integrations/](../integrations/) |
 | **npm** | `@tridentchain/security-cli` | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
 | **Desktop UI** | Electron app (repo) | `apps/desktop/` |
 

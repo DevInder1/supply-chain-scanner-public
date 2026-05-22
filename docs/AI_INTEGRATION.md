@@ -1,6 +1,16 @@
 # AI & Automation Integration
 
-TridentChain Security can be used by AI assistants, CI pipelines, and custom tools **without cloning the repository** — install from PyPI and call the CLI or Python API.
+TridentChain Security works with **Claude, OpenAI, Cursor, VS Code, Windsurf, Zed**, and any agent that supports **MCP** or **shell commands**.
+
+**→ Full matrix:** [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md)  
+**→ Setup helper:** `./scripts/setup-agent-mcp.sh <claude|cursor|vscode|openai|windsurf|mcp>`
+
+Install (agents + MCP):
+
+```bash
+pip3 install "tridentchain-security>=0.1.2"
+pip3 install tridentchain-mcp
+```
 
 ---
 
@@ -148,9 +158,11 @@ No repo clone required if the pip package is installed.
 
 ## Related
 
-- [VSCODE_SETUP.md](VSCODE_SETUP.md) — Phase 4 VS Code (MCP-first)
-- [CURSOR_SETUP.md](CURSOR_SETUP.md) — Phase 3 Cursor MCP
-- [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md) — Phase 2 Claude
+- [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md) — **all agents** (Claude, OpenAI, Cursor, VS Code, Windsurf, …)
+- [CAPABILITIES.md](CAPABILITIES.md)
+- [VSCODE_SETUP.md](VSCODE_SETUP.md)
+- [CURSOR_SETUP.md](CURSOR_SETUP.md)
+- [CLAUDE_MCP_SETUP.md](CLAUDE_MCP_SETUP.md)
 - [INSTALL_AND_USE.md](INSTALL_AND_USE.md)
 - [CROSS_PLATFORM.md](CROSS_PLATFORM.md)
 - [cli-contract.md](cli-contract.md)
