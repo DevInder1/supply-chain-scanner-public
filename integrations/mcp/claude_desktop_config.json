@@ -1,0 +1,35 @@
+{
+  "_comment": "Claude Desktop — copy/merge into ~/Library/Application Support/Claude/claude_desktop_config.json (macOS) or %APPDATA%\\Claude\\claude_desktop_config.json (Windows).",
+  "_options": {
+    "uvx (recommended, no pip install needed)": {
+      "mcpServers": {
+        "tridentchain": {
+          "command": "uvx",
+          "args": ["tridentchain-mcp"]
+        }
+      }
+    },
+    "pip-installed (fallback)": {
+      "mcpServers": {
+        "tridentchain": {
+          "command": "tridentchain-mcp",
+          "args": []
+        }
+      }
+    },
+    "python -m (most portable)": {
+      "mcpServers": {
+        "tridentchain": {
+          "command": "python3",
+          "args": ["-m", "tridentchain_mcp"]
+        }
+      }
+    }
+  },
+  "mcpServers": {
+    "tridentchain": {
+      "command": "uvx",
+      "args": ["tridentchain-mcp"]
+    }
+  }
+}
