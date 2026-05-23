@@ -4,7 +4,8 @@
       "command": {
         "path": "python3",
         "args": ["-m", "tridentchain_mcp"]
-      }
+      },
+      "settings": {}
     }
   }
 }

@@ -1,5 +1,7 @@
 # tridentchain-mcp
 
+<!-- mcp-name: io.github.DevInder1/tridentchain-security -->
+
 MCP server for **TridentChain Security** — one local stdio server for **Claude, Cursor, VS Code, Windsurf, Zed**, and any MCP-compatible agent.
 
 **Requires:** `pip install "tridentchain-security>=0.1.1"` (unified tool layer).

@@ -1,40 +1,56 @@
 # TridentChain Security — Claude Plugin
 
-Local supply-chain vulnerability scanning for **Claude Code** and **Claude Desktop** via MCP + skills.
+Local supply-chain vulnerability scanning for **Claude Code**, **Claude Desktop**, **Cursor**, **VS Code**, **Windsurf**, **Zed**, and any MCP client — via stdio MCP + skills.
 
 [![PyPI](https://img.shields.io/pypi/v/tridentchain-security)](https://pypi.org/project/tridentchain-security/)
 [![PyPI MCP](https://img.shields.io/pypi/v/tridentchain-mcp)](https://pypi.org/project/tridentchain-mcp/)
 
-## Prerequisites
+## Install
 
 ```bash
-pip install "tridentchain-security>=0.1.2"
-pip install tridentchain-mcp
+pip install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
 ```
 
 Verify:
 
 ```bash
+tridentchain-security --version    # → tridentchain-security 0.1.2
+tridentchain-mcp --version         # → tridentchain-mcp 0.1.1
 python3 -c "from tridentchain_mcp.server import mcp; print(mcp.name)"
+# → tridentchain-security
 ```
 
-The **`tridentchain-security` CLI** remains the universal fallback.
+The **`tridentchain-security` CLI** is the universal fallback for any agent that can run shell commands.
 
-## Install (Claude Code)
+---
 
-From the public repository root:
+## Claude Code
+
+### Option 1 — One-liner (global, persists across projects)
+
+```bash
+claude mcp add tridentchain -- python3 -m tridentchain_mcp
+```
+
+### Option 2 — Plugin (skills + MCP, from repo root)
 
 ```bash
 git clone https://github.com/DevInder1/supply-chain-scanner-public.git
 cd supply-chain-scanner-public
+pip install "tridentchain-security>=0.1.2" "tridentchain-mcp>=0.1.1"
 claude --plugin-dir ./plugins/tridentchain-security
 ```
 
-Or add this directory via **Claude Code plugin marketplaces** when published.
+Skills available after loading the plugin:
 
-## Claude Desktop
+| Skill | Invocation |
+|-------|------------|
+| Supply chain scan | `/tridentchain-security:supply-chain-scan` |
+| Validate fixes | `/tridentchain-security:validate-fixes` |
 
-Add to `claude_desktop_config.json`:
+### Option 3 — Project-level `.mcp.json` (auto-discovered)
+
+Place in your project root and run `claude`:
 
 ```json
 {
@@ -47,50 +63,138 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-## Skills
+---
 
-| Skill | Invocation |
-|-------|------------|
-| Supply chain scan | `/tridentchain-security:supply-chain-scan` |
-| Validate fixes | `/tridentchain-security:validate-fixes` |
+## Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop and confirm **tridentchain** appears in the tools list.
+
+---
+
+## Cursor
+
+Create `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+---
+
+## VS Code (GitHub Copilot agent mode)
+
+Create `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "tridentchain": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+---
+
+## Windsurf
+
+Merge into `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "tridentchain": {
+      "command": "python3",
+      "args": ["-m", "tridentchain_mcp"]
+    }
+  }
+}
+```
+
+---
+
+## Zed
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "context_servers": {
+    "tridentchain": {
+      "command": {
+        "path": "python3",
+        "args": ["-m", "tridentchain_mcp"]
+      },
+      "settings": {}
+    }
+  }
+}
+```
+
+---
 
 ## MCP tools
 
-| Tool | Title | Read-only |
-|------|-------|-----------|
-| `scan_project` | Scan Project Dependencies | No (writes reports) |
-| `scan_full` | Scan Workspace (Full) | No (writes reports) |
-| `validate_after_patch` | Validate After Patch | Yes |
+| Tool | Title | readOnlyHint | Description |
+|------|-------|:------------:|-------------|
+| `scan_project` | Scan Project Dependencies | false | Project deps only (fast) |
+| `scan_full` | Scan Workspace (Full) | false | Project + OS packages + IDE extensions |
+| `validate_after_patch` | Validate After Patch | true | Diff two scan results after upgrades |
 
-Server: `tridentchain-mcp` (stdio) via `.mcp.json`.
+Server: `tridentchain-mcp` (stdio transport). No API keys required for default profile.
 
-## Privacy Policy
+---
 
-TridentChain is **local-first**. Scans run on your machine; we do not host your source code.
+## Privacy
+
+TridentChain is **local-first**. Scans run on your machine; source code is never uploaded to TridentChain servers. Only package names/versions are sent to public advisory APIs (OSV, NVD).
 
 Full policy: [PRIVACY.md](PRIVACY.md)  
-HTTPS URL for directory submission:  
-https://raw.githubusercontent.com/DevInder1/supply-chain-scanner-public/main/plugins/tridentchain-security/PRIVACY.md
+HTTPS URL: `https://raw.githubusercontent.com/DevInder1/supply-chain-scanner-public/main/plugins/tridentchain-security/PRIVACY.md`
 
 ## Security
 
 See [SECURITY.md](SECURITY.md).
 
-## Submission / validation
-
-Maintainers: [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) · [docs/PLUGIN_SUBMISSION.md](../../docs/PLUGIN_SUBMISSION.md)
+## Validation (maintainers)
 
 ```bash
-# From repo root (requires Claude Code CLI)
-claude plugin validate ./plugins/tridentchain-security
+# From repo root
 ./scripts/validate-plugin.sh
+claude plugin validate ./plugins/tridentchain-security
 ```
+
+See [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) and [docs/PLUGIN_SUBMISSION.md](../../docs/PLUGIN_SUBMISSION.md).
 
 ## Documentation
 
 - [CLAUDE_MCP_SETUP.md](../../docs/CLAUDE_MCP_SETUP.md)
 - [AGENT_INTEGRATIONS.md](../../docs/AGENT_INTEGRATIONS.md)
-- [ANTHROPIC_ECOSYSTEM_STATUS.md](../../docs/ANTHROPIC_ECOSYSTEM_STATUS.md)
+- [CURSOR_SETUP.md](../../docs/CURSOR_SETUP.md)
+- [VSCODE_SETUP.md](../../docs/VSCODE_SETUP.md)
 
 ## License
 

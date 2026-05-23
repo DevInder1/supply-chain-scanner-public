@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DevInder1/tridentchain-security",
+  "title": "TridentChain Security",
+  "description": "Local supply-chain CVE scanner via OSV/NVD. Scans deps and IDE extensions. No upload.",
+  "repository": {
+    "url": "https://github.com/DevInder1/supply-chain-scanner-public",
+    "source": "github"
+  },
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "tridentchain-mcp",
+      "version": "0.1.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "installationNotes": "Also requires: pip install \"tridentchain-security>=0.1.2\""
+    }
+  ]
+}
