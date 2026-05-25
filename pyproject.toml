@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tridentchain-security"
-version = "0.1.2"
+version = "0.1.3"
 description = "TridentChain Security — local-first supply chain vulnerability scanner for project, system, and extensions."
 readme = "README.md"
 requires-python = ">=3.10"
