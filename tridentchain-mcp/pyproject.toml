@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tridentchain-mcp"
-version = "0.1.2"
+version = "0.1.3"
 description = "MCP server for TridentChain Security — Claude, Cursor, and other MCP hosts"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ authors = [
   { name = "TridentChain Security Contributors" }
 ]
 dependencies = [
-  "tridentchain-security>=0.1.2",
+  "tridentchain-security>=0.1.3",
   "mcp[cli]>=1.6.0",
 ]
 keywords = ["mcp", "security", "supply-chain", "claude", "cursor"]

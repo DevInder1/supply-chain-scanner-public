@@ -44,7 +44,7 @@ def _default_config_path() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local-first supply chain vulnerability scanner")
-    parser.add_argument("--version", "-V", action="version", version="tridentchain-security 0.1.2")
+    parser.add_argument("--version", "-V", action="version", version="tridentchain-security 0.1.3")
     parser.add_argument("--scan", choices=["all", "system", "project"], default="all")
     parser.add_argument(
         "--run-profile",

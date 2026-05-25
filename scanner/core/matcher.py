@@ -23,6 +23,24 @@ RANK_TO_SEVERITY = {
 
 VERSION_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 VERSION_PREFIX_RE = re.compile(r"^[\^~<>=\s]*(\d[\w.+-]*)")
+# Detects range/constraint operators: ^, ~, >=, >, <=, <, !=, ~=, * (npm/PyPI/etc).
+# A version string starting with any of these is an unresolved range, not a pinned version.
+VERSION_RANGE_RE = re.compile(r"^\s*(\^|~=|~|>=|>|<=|<|!=|\*|=>=|=>)")
+
+
+def is_range_constraint(version: str) -> bool:
+    """Return True if ``version`` is an unresolved range constraint (``>=1.2.3``,
+    ``^4.17.0``, ``~=2.31.0``, ``*``) rather than a pinned version (``1.2.3``).
+
+    Matching advisories against the floor of a range is a known false-positive
+    pattern: ``requests>=2.31.0`` does not mean the installed version IS 2.31.0,
+    it means the lockfile/registry will resolve to the latest satisfying release.
+    Callers should skip advisory matching for these and rely on lockfile-resolved
+    pins where available.
+    """
+    if not version:
+        return False
+    return bool(VERSION_RANGE_RE.match(version))
 
 
 def match_components(
@@ -166,6 +184,12 @@ def ecosystem_matches(component: Component, advisory_ecosystem: str) -> bool:
 
 
 def version_matches(component_version: str, affected_entry: dict[str, Any]) -> bool:
+    # Unresolved range constraints (e.g. ">=2.31.0", "^4.17.0") cannot be
+    # confidently matched against advisory ranges: the floor is not the installed
+    # version. Skip these and let lockfile-resolved pins drive the verdict.
+    if is_range_constraint(component_version):
+        return False
+
     normalized_version = normalize_version(component_version)
     if not normalized_version:
         return False
