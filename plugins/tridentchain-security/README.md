@@ -2,8 +2,11 @@
 
 Local supply-chain vulnerability scanning for **Claude Code**, **Claude Desktop**, **Cursor**, **VS Code**, **Windsurf**, **Zed**, and any MCP client — via stdio MCP + skills.
 
-[![PyPI](https://img.shields.io/pypi/v/tridentchain-security)](https://pypi.org/project/tridentchain-security/)
-[![PyPI MCP](https://img.shields.io/pypi/v/tridentchain-mcp)](https://pypi.org/project/tridentchain-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/tridentchain-security?label=tridentchain-security&color=3b82f6)](https://pypi.org/project/tridentchain-security/)
+[![PyPI MCP](https://img.shields.io/pypi/v/tridentchain-mcp?label=tridentchain-mcp&color=3b82f6)](https://pypi.org/project/tridentchain-mcp/)
+[![Downloads](https://img.shields.io/pypi/dm/tridentchain-mcp?label=downloads&color=34d399)](https://pypi.org/project/tridentchain-mcp/)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-34d399)](https://registry.modelcontextprotocol.io/v0.1/servers?search=tridentchain)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](../../LICENSE)
 
 ## Install
 
