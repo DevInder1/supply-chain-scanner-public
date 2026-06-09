@@ -46,10 +46,15 @@ claude --plugin-dir ./plugins/tridentchain-security
 
 Skills available after loading the plugin:
 
-| Skill | Invocation |
-|-------|------------|
-| Supply chain scan | `/tridentchain-security:supply-chain-scan` |
-| Validate fixes | `/tridentchain-security:validate-fixes` |
+| Skill | Purpose |
+|-------|---------|
+| `/tridentchain-security:quick-scan` | Fast cached-only scan of project dependencies (sub-second) |
+| `/tridentchain-security:scan` | Full project dependency scan with live OSV/NVD/GHSA advisories |
+| `/tridentchain-security:scan-full` | Comprehensive: project deps + system packages + IDE extensions |
+| `/tridentchain-security:why` | Explain why a vulnerable package is in the tree (chain, CVEs, EPSS, fix) |
+| `/tridentchain-security:fix-plan` | EPSS/KEV-prioritised remediation plan with copy-paste upgrade commands |
+| `/tridentchain-security:validate-fixes` | Re-scan and confirm fixes after dependency upgrades |
+| `/tridentchain-security:supply-chain-scan` | General entry point — aliases `scan`, kept for backward compatibility |
 
 ### Option 3 — Project-level `.mcp.json` (auto-discovered)
 

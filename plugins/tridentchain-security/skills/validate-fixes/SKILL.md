@@ -1,5 +1,5 @@
 ---
-description: Validate dependency upgrades by re-scanning and comparing TridentChain results
+description: Re-scan after a dependency upgrade and confirm the CVEs are actually resolved. Use when the user has just run `npm update`, `pip install -U`, applied a patch, or otherwise upgraded packages and wants verification. Diffs a baseline scan against the post-patch scan and reports resolved_count, remaining_count, new_count, and validation_passed.
 ---
 
 # Validate fixes after patch
