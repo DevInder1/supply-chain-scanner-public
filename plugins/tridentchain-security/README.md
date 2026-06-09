@@ -2,8 +2,11 @@
 
 Local supply-chain vulnerability scanning for **Claude Code**, **Claude Desktop**, **Cursor**, **VS Code**, **Windsurf**, **Zed**, and any MCP client — via stdio MCP + skills.
 
-[![PyPI](https://img.shields.io/pypi/v/tridentchain-security)](https://pypi.org/project/tridentchain-security/)
-[![PyPI MCP](https://img.shields.io/pypi/v/tridentchain-mcp)](https://pypi.org/project/tridentchain-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/tridentchain-security?label=tridentchain-security&color=3b82f6)](https://pypi.org/project/tridentchain-security/)
+[![PyPI MCP](https://img.shields.io/pypi/v/tridentchain-mcp?label=tridentchain-mcp&color=3b82f6)](https://pypi.org/project/tridentchain-mcp/)
+[![Downloads](https://img.shields.io/pypi/dm/tridentchain-mcp?label=downloads&color=34d399)](https://pypi.org/project/tridentchain-mcp/)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-34d399)](https://registry.modelcontextprotocol.io/v0.1/servers?search=tridentchain)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](../../LICENSE)
 
 ## Install
 
@@ -43,10 +46,15 @@ claude --plugin-dir ./plugins/tridentchain-security
 
 Skills available after loading the plugin:
 
-| Skill | Invocation |
-|-------|------------|
-| Supply chain scan | `/tridentchain-security:supply-chain-scan` |
-| Validate fixes | `/tridentchain-security:validate-fixes` |
+| Skill | Purpose |
+|-------|---------|
+| `/tridentchain-security:quick-scan` | Fast cached-only scan of project dependencies (sub-second) |
+| `/tridentchain-security:scan` | Full project dependency scan with live OSV/NVD/GHSA advisories |
+| `/tridentchain-security:scan-full` | Comprehensive: project deps + system packages + IDE extensions |
+| `/tridentchain-security:why` | Explain why a vulnerable package is in the tree (chain, CVEs, EPSS, fix) |
+| `/tridentchain-security:fix-plan` | EPSS/KEV-prioritised remediation plan with copy-paste upgrade commands |
+| `/tridentchain-security:validate-fixes` | Re-scan and confirm fixes after dependency upgrades |
+| `/tridentchain-security:supply-chain-scan` | General entry point — aliases `scan`, kept for backward compatibility |
 
 ### Option 3 — Project-level `.mcp.json` (auto-discovered)
 

@@ -1,5 +1,13 @@
 # TridentChain Security
 
+[![PyPI — tridentchain-security](https://img.shields.io/pypi/v/tridentchain-security?label=tridentchain-security&color=3b82f6)](https://pypi.org/project/tridentchain-security/)
+[![PyPI — tridentchain-mcp](https://img.shields.io/pypi/v/tridentchain-mcp?label=tridentchain-mcp&color=3b82f6)](https://pypi.org/project/tridentchain-mcp/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/tridentchain-mcp?label=downloads&color=34d399)](https://pypi.org/project/tridentchain-mcp/)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-34d399)](https://registry.modelcontextprotocol.io/v0.1/servers?search=tridentchain)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Works with Claude · Cursor · VS Code · Windsurf · Zed](https://img.shields.io/badge/Claude%20%C2%B7%20Cursor%20%C2%B7%20VS%20Code%20%C2%B7%20Windsurf%20%C2%B7%20Zed-MCP-7c3aed)](docs/AGENT_INTEGRATIONS.md)
+
 Local-first vulnerability scanner for project dependencies, developer tools, and IDE extensions.  
 Uses multi-source intelligence (OSV, NVD, GHSA, Sonatype) with KEV/EPSS prioritization.
 
