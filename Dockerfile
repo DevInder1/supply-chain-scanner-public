@@ -39,6 +39,14 @@ RUN pip install --no-cache-dir \
 
 USER tridentchain
 
+# Force unbuffered stdout/stderr — critical for stdio MCP transport,
+# otherwise responses can get stuck in the Python buffer and never
+# reach the client. PYTHONUNBUFFERED=1 covers the same case for any
+# child processes the server might spawn.
+ENV PYTHONUNBUFFERED=1
+
 # stdio transport: run as PID 1 so signals reach the Python process and
-# so that stdin/stdout are the MCP transport channel.
-ENTRYPOINT ["python", "-m", "tridentchain_mcp"]
+# so that stdin/stdout are the MCP transport channel. `-u` forces
+# unbuffered I/O; this is what Glama's stdio scorer and every real
+# MCP client expects.
+ENTRYPOINT ["python", "-u", "-m", "tridentchain_mcp"]
