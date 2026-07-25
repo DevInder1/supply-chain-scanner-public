@@ -7,6 +7,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 [![Works with Claude · Cursor · VS Code · Windsurf · Zed](https://img.shields.io/badge/Claude%20%C2%B7%20Cursor%20%C2%B7%20VS%20Code%20%C2%B7%20Windsurf%20%C2%B7%20Zed-MCP-7c3aed)](docs/AGENT_INTEGRATIONS.md)
+[![Docker (ghcr.io)](https://img.shields.io/badge/ghcr.io-tridentchain--mcp-2496ed?logo=docker&logoColor=white)](https://github.com/DevInder1/supply-chain-scanner-public/pkgs/container/tridentchain-mcp)
 
 Local-first vulnerability scanner for project dependencies, developer tools, and IDE extensions.  
 Uses multi-source intelligence (OSV, NVD, GHSA, Sonatype) with KEV/EPSS prioritization.
@@ -25,10 +26,22 @@ npm install -g @tridentchain/security-cli
 tridentchain-security --help
 ```
 
-**Agents & MCP (Claude, Cursor, VS Code):**
+**Agents & MCP (Claude, Cursor, VS Code, Windsurf, Zed):**
+
+Pick whichever install path fits:
 
 ```bash
-pip3 install "tridentchain-security>=0.1.1" tridentchain-mcp
+# Option A — pip (needs Python 3.10+)
+pip3 install -U "tridentchain-security>=0.1.4" "tridentchain-mcp>=0.1.4"
+
+# Option B — uvx (no manual Python install; uv handles it)
+uvx tridentchain-mcp
+
+# Option C — Docker (no Python needed, fully sandboxed)
+docker pull ghcr.io/devinder1/tridentchain-mcp:latest
+# Then in your MCP config, replace `python3 -m tridentchain_mcp` with:
+#   command: docker
+#   args: ["run", "--rm", "-i", "-v", "$PWD:/workspace", "ghcr.io/devinder1/tridentchain-mcp:latest"]
 ```
 
 What you can do: **[docs/CAPABILITIES.md](docs/CAPABILITIES.md)**  
