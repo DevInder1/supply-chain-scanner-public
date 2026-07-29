@@ -7,41 +7,78 @@ on:
 
 jobs:
   publish-pypi:
+    name: Build and publish both Python packages to PyPI
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Build and publish to PyPI
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build tridentchain-security (root package)
+        run: python -m build
+
+      - name: Build tridentchain-mcp (subdirectory package)
+        working-directory: tridentchain-mcp
+        run: python -m build
+
+      - name: Verify PYPI_TOKEN is set
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          python -m pip install --upgrade build twine
-          python -m build
           if [ -z "$PYPI_TOKEN" ]; then
-            echo "::error::PYPI_TOKEN secret not configured."
+            echo "::error::PYPI_TOKEN secret not configured. Add it in Settings → Secrets → Actions."
             exit 1
           fi
-          python -m twine upload dist/* -u __token__ -p "$PYPI_TOKEN"
+
+      - name: Publish tridentchain-security to PyPI (skip-existing)
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload --skip-existing \
+            dist/tridentchain_security-* \
+            -u __token__ -p "$PYPI_TOKEN"
+
+      - name: Publish tridentchain-mcp to PyPI (skip-existing)
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload --skip-existing \
+            tridentchain-mcp/dist/tridentchain_mcp-* \
+            -u __token__ -p "$PYPI_TOKEN"
 
   publish-npm:
+    name: Publish npm wrapper (opt-in — only when NPM_TOKEN is set)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Skip npm publish if NPM_TOKEN is not configured
+        id: gate
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::notice::NPM_TOKEN secret not configured. Skipping npm publish (this is fine — the npm wrapper is optional)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.gate.outputs.skip == 'false'
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
+
       - name: Publish npm wrapper
+        if: steps.gate.outputs.skip == 'false'
         working-directory: npm-wrapper
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::NPM_TOKEN secret not configured."
-            exit 1
-          fi
-          npm publish --access public
+        run: npm publish --access public
