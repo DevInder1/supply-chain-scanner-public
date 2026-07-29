@@ -35,7 +35,7 @@ WORKDIR /home/tridentchain
 # lets Glama's automated check hit a known-good build.
 RUN pip install --no-cache-dir \
       "tridentchain-security==0.1.4" \
-      "tridentchain-mcp==0.1.4"
+      "tridentchain-mcp==0.1.5"
 
 USER tridentchain
 
