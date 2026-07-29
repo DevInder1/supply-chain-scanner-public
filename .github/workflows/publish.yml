@@ -52,22 +52,32 @@ jobs:
             -u __token__ -p "$PYPI_TOKEN"
 
   publish-npm:
-    name: Publish npm wrapper (opt-in — only when NPM_TOKEN is set)
+    name: Publish npm wrapper (opt-in via PUBLISH_NPM=1 repo variable)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Skip npm publish if NPM_TOKEN is not configured
+      - name: Gate on the PUBLISH_NPM repository variable
         id: gate
         env:
+          PUBLISH_NPM: ${{ vars.PUBLISH_NPM }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "::notice::NPM_TOKEN secret not configured. Skipping npm publish (this is fine — the npm wrapper is optional)."
+          # npm publishing is opt-in — matches scripts/publish-packages.sh
+          # which checks `PUBLISH_NPM=1`. Setting the token alone is not enough
+          # (the token is scope-bound and may not have permission to create
+          # `@tridentchain/*` if the org hasn't been set up). Explicit opt-in
+          # avoids surprise 404s on releases.
+          if [ "$PUBLISH_NPM" != "1" ]; then
+            echo "::notice::PUBLISH_NPM repo variable is not '1' — skipping npm publish. This is the default; set the repo variable at Settings → Secrets and variables → Actions → Variables to opt in."
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::PUBLISH_NPM=1 is set but NPM_TOKEN secret is missing. Add an npm automation or granular token with write access to the @tridentchain scope."
+            exit 1
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         if: steps.gate.outputs.skip == 'false'
