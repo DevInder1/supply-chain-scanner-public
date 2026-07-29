@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "tridentchain-security",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Comprehensive local supply-chain CVE scanning — project deps, system packages (Homebrew/apt), AND IDE extensions (VS Code, JetBrains) — with EPSS exploit-probability and CISA KEV prioritisation. Includes validate-after-patch workflow to confirm fixes. Local-first; no source code leaves the user's machine. Complements project-only CI scanners by covering surfaces they miss.",
   "author": {
     "name": "TridentChain Security Contributors",
