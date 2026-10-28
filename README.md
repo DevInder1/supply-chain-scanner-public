@@ -9,6 +9,8 @@
 [![Works with Claude · Cursor · VS Code · Windsurf · Zed](https://img.shields.io/badge/Claude%20%C2%B7%20Cursor%20%C2%B7%20VS%20Code%20%C2%B7%20Windsurf%20%C2%B7%20Zed-MCP-7c3aed)](docs/AGENT_INTEGRATIONS.md)
 [![Docker (ghcr.io)](https://img.shields.io/badge/ghcr.io-tridentchain--mcp-2496ed?logo=docker&logoColor=white)](https://github.com/DevInder1/supply-chain-scanner-public/pkgs/container/tridentchain-mcp)
 
+[![TridentChain Security MCP server](https://mcprush.com/badge/tridentchain-security-mcp/card.svg)](https://mcprush.com/to/tridentchain-security-mcp?ref=badge)
+
 Local-first vulnerability scanner for project dependencies, developer tools, and IDE extensions.  
 Uses multi-source intelligence (OSV, NVD, GHSA, Sonatype) with KEV/EPSS prioritization.
 
